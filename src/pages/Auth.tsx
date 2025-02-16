@@ -91,45 +91,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'azure') => {
-    setError("");
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || `Failed to sign in with ${provider}`);
-    }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email for the password reset link.",
-      });
-    } catch (err: any) {
-      setError(err.message || "Failed to send reset password email");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
       <Card className="w-[400px]">
@@ -175,48 +136,12 @@ export default function AuthPage() {
                     required
                   />
                 </div>
-                <Button
-                  variant="link"
-                  className="px-0"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleResetPassword(e);
-                  }}
-                >
-                  Forgot password?
-                </Button>
               </CardContent>
-              <CardFooter className="flex flex-col gap-4">
+              <CardFooter>
                 <Button className="w-full" type="submit" disabled={isLoading}>
                   {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
                   Login
                 </Button>
-                <div className="relative w-full">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSocialLogin("google")}
-                    disabled={isLoading}
-                  >
-                    <Icons.google className="mr-2 h-4 w-4" />
-                    Google
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSocialLogin("azure")}
-                    disabled={isLoading}
-                  >
-                    <Icons.microsoft className="mr-2 h-4 w-4" />
-                    Microsoft
-                  </Button>
-                </div>
               </CardFooter>
             </form>
           </TabsContent>
