@@ -31,7 +31,6 @@ export default function AuthPage() {
     setError("");
 
     try {
-      // First, create the user account
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -48,15 +47,7 @@ export default function AuthPage() {
         throw new Error("Failed to create user account");
       }
 
-      // Create a session to get authenticated access
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) throw signInError;
-
-      // Now that we're authenticated, insert the role
+      // Use the session from signup to insert the role
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert([{ user_id: authData.user.id, role }]);
@@ -65,13 +56,14 @@ export default function AuthPage() {
 
       toast({
         title: "Account created successfully!",
-        description: "You have been automatically logged in.",
+        description: "Please check your email for verification instructions.",
       });
       
       navigate("/");
     } catch (err: any) {
+      console.error("Signup error:", err);
       setError(err.message || "An error occurred during sign up");
-      // If there was an error, try to clean up by signing out
+      // If there was an error, try to clean up
       await supabase.auth.signOut();
     } finally {
       setIsLoading(false);
@@ -98,6 +90,7 @@ export default function AuthPage() {
       
       navigate("/");
     } catch (err: any) {
+      console.error("Login error:", err);
       setError(err.message || "An error occurred during login");
     } finally {
       setIsLoading(false);
