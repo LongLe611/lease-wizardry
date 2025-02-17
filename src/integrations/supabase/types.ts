@@ -9,6 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      leases: {
+        Row: {
+          base_payment: number
+          base_year: number | null
+          commencement_date: string
+          cpi_index_rate: number | null
+          created_at: string | null
+          discount_rate: number
+          expiration_date: string
+          id: string
+          is_low_value: boolean | null
+          lease_term: number
+          lessor_entity: string
+          payment_interval: Database["public"]["Enums"]["payment_interval"]
+          payment_type: Database["public"]["Enums"]["payment_type"]
+          residual_value: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          base_payment: number
+          base_year?: number | null
+          commencement_date: string
+          cpi_index_rate?: number | null
+          created_at?: string | null
+          discount_rate: number
+          expiration_date: string
+          id?: string
+          is_low_value?: boolean | null
+          lease_term: number
+          lessor_entity: string
+          payment_interval: Database["public"]["Enums"]["payment_interval"]
+          payment_type: Database["public"]["Enums"]["payment_type"]
+          residual_value?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          base_payment?: number
+          base_year?: number | null
+          commencement_date?: string
+          cpi_index_rate?: number | null
+          created_at?: string | null
+          discount_rate?: number
+          expiration_date?: string
+          id?: string
+          is_low_value?: boolean | null
+          lease_term?: number
+          lessor_entity?: string
+          payment_interval?: Database["public"]["Enums"]["payment_interval"]
+          payment_type?: Database["public"]["Enums"]["payment_type"]
+          residual_value?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -68,6 +125,8 @@ export type Database = {
     }
     Enums: {
       app_role: "accountant" | "auditor" | "admin"
+      payment_interval: "monthly" | "quarterly" | "annual"
+      payment_type: "fixed" | "variable"
     }
     CompositeTypes: {
       [_ in never]: never

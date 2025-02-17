@@ -3,11 +3,18 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function AssetClassificationSection() {
+interface AssetClassificationProps {
+  onLowValueChange: (isLowValue: boolean) => void;
+}
+
+export function AssetClassificationSection({ onLowValueChange }: AssetClassificationProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2">
-        <Checkbox id="low-value" />
+        <Checkbox 
+          id="low-value" 
+          onCheckedChange={(checked) => onLowValueChange(checked as boolean)}
+        />
         <Label htmlFor="low-value">Low-value Asset Exemption</Label>
       </div>
 

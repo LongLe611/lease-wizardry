@@ -1,9 +1,57 @@
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "lucide-react";
+import { Calendar, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
-export function ContractDetailsSection() {
+interface ContractDetailsProps {
+  isLowValue: boolean;
+  onDateChange: (dates: { commencementDate: Date | null; expirationDate: Date | null; leaseTerm: number | null }) => void;
+}
+
+export function ContractDetailsSection({ isLowValue, onDateChange }: ContractDetailsProps) {
+  const [commencementDate, setCommencementDate] = useState<Date | null>(null);
+  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const [leaseTerm, setLeaseTerm] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (commencementDate && expirationDate) {
+      if (expirationDate <= commencementDate) {
+        setError("Expiration date must be after commencement date");
+        setLeaseTerm(null);
+        return;
+      }
+
+      const diffTime = expirationDate.getTime() - commencementDate.getTime();
+      const calculatedYears = Math.round((diffTime / (1000 * 3600 * 24 * 365)) * 100) / 100;
+      setLeaseTerm(calculatedYears);
+
+      // Validate lease term
+      if (calculatedYears < 1 && !isLowValue) {
+        setWarning("Term is less than 1 year. Consider checking low-value exemption.");
+      } else if (calculatedYears >= 1) {
+        setWarning(null);
+      }
+
+      onDateChange({ commencementDate, expirationDate, leaseTerm: calculatedYears });
+      setError(null);
+    }
+  }, [commencementDate, expirationDate, isLowValue, onDateChange]);
+
+  const handleDateChange = (dateType: 'commencement' | 'expiration', value: string) => {
+    const date = value ? new Date(value) : null;
+    if (dateType === 'commencement') {
+      setCommencementDate(date);
+    } else {
+      setExpirationDate(date);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -13,6 +61,7 @@ export function ContractDetailsSection() {
             id="lessor"
             placeholder="Search lessor..."
             className="w-full"
+            required
           />
         </div>
       </div>
@@ -25,6 +74,8 @@ export function ContractDetailsSection() {
               id="commencement"
               type="date"
               className="w-full"
+              onChange={(e) => handleDateChange('commencement', e.target.value)}
+              required
             />
             <Calendar className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
           </div>
@@ -37,20 +88,34 @@ export function ContractDetailsSection() {
               id="expiration"
               type="date"
               className="w-full"
+              onChange={(e) => handleDateChange('expiration', e.target.value)}
+              required
             />
             <Calendar className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
           </div>
         </div>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {warning && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{warning}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="term">Lease Term (Years)</Label>
         <Input
           id="term"
           type="number"
-          min="0"
-          step="1"
-          placeholder="Calculated lease term..."
+          value={leaseTerm || ''}
           className="w-full"
           readOnly
         />
