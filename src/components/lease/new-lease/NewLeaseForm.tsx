@@ -53,27 +53,34 @@ export function NewLeaseForm() {
 
   const handleSubmit = async () => {
     try {
+      // Validate required fields
+      if (!formData.commencementDate || !formData.expirationDate || !formData.discountRate || 
+          !formData.paymentInterval || !formData.paymentType || !formData.basePayment) {
+        throw new Error("Please fill in all required fields");
+      }
+
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
 
+      // Format dates and prepare data according to the database schema
+      const leaseData = {
+        lessor_entity: "Sample Lessor", // This should come from form input
+        commencement_date: formData.commencementDate.toISOString().split('T')[0],
+        expiration_date: formData.expirationDate.toISOString().split('T')[0],
+        lease_term: formData.leaseTerm || 0,
+        payment_interval: formData.paymentInterval as "monthly" | "quarterly" | "annual",
+        payment_type: formData.paymentType as "fixed" | "variable",
+        base_payment: formData.basePayment,
+        cpi_index_rate: formData.cpiIndexRate,
+        base_year: formData.baseYear,
+        discount_rate: formData.discountRate,
+        is_low_value: isLowValue,
+        user_id: userData.user.id
+      };
+
       const { error: insertError } = await supabase
         .from('leases')
-        .insert([
-          {
-            lessor_entity: "Sample Lessor", // This should come from form input
-            commencement_date: formData.commencementDate,
-            expiration_date: formData.expirationDate,
-            lease_term: formData.leaseTerm,
-            payment_interval: formData.paymentInterval,
-            payment_type: formData.paymentType,
-            base_payment: formData.basePayment,
-            cpi_index_rate: formData.cpiIndexRate,
-            base_year: formData.baseYear,
-            discount_rate: formData.discountRate,
-            is_low_value: isLowValue,
-            user_id: userData.user.id
-          }
-        ]);
+        .insert(leaseData);
 
       if (insertError) throw insertError;
 
