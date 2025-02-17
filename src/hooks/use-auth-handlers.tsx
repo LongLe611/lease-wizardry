@@ -43,7 +43,7 @@ export function useAuthHandlers() {
         description: "Please check your email for verification instructions.",
       });
       
-      navigate("/");
+      navigate("/lease-management");
     } catch (err: any) {
       console.error("Signup error:", err);
       setError(err.message || "An error occurred during sign up");
@@ -70,7 +70,7 @@ export function useAuthHandlers() {
         description: "You have successfully logged in.",
       });
       
-      navigate("/");
+      navigate("/lease-management");
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "An error occurred during login");
