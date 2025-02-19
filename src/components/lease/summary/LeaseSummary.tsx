@@ -11,11 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 
 type Lease = {
   id: string;
-  contract_number: string;
+  contract_number?: string; // Make contract_number optional
   lessor_entity: string;
   commencement_date: string;
   expiration_date: string;
   payment_interval: "monthly" | "quarterly" | "annual";
+  base_payment: number;
   is_low_value: boolean;
   created_at: string;
   updated_at: string;
