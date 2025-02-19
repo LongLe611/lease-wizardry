@@ -14,6 +14,7 @@ export type Database = {
           base_payment: number
           base_year: number | null
           commencement_date: string
+          contract_number: string
           cpi_index_rate: number | null
           created_at: string | null
           discount_rate: number
@@ -32,6 +33,7 @@ export type Database = {
           base_payment: number
           base_year?: number | null
           commencement_date: string
+          contract_number: string
           cpi_index_rate?: number | null
           created_at?: string | null
           discount_rate: number
@@ -50,6 +52,7 @@ export type Database = {
           base_payment?: number
           base_year?: number | null
           commencement_date?: string
+          contract_number?: string
           cpi_index_rate?: number | null
           created_at?: string | null
           discount_rate?: number
