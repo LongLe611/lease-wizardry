@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 export function NewLeaseForm() {
   const [isLowValue, setIsLowValue] = useState(false);
   const [formData, setFormData] = useState({
+    contractNumber: '',
+    lessorEntity: '',
     commencementDate: null as Date | null,
     expirationDate: null as Date | null,
     leaseTerm: null as number | null,
@@ -55,7 +57,8 @@ export function NewLeaseForm() {
     try {
       // Validate required fields
       if (!formData.commencementDate || !formData.expirationDate || !formData.discountRate || 
-          !formData.paymentInterval || !formData.paymentType || !formData.basePayment) {
+          !formData.paymentInterval || !formData.paymentType || !formData.basePayment ||
+          !formData.contractNumber || !formData.lessorEntity) {
         throw new Error("Please fill in all required fields");
       }
 
@@ -64,7 +67,8 @@ export function NewLeaseForm() {
 
       // Format dates and prepare data according to the database schema
       const leaseData = {
-        lessor_entity: "Sample Lessor", // This should come from form input
+        contract_number: formData.contractNumber,
+        lessor_entity: formData.lessorEntity,
         commencement_date: formData.commencementDate.toISOString().split('T')[0],
         expiration_date: formData.expirationDate.toISOString().split('T')[0],
         lease_term: formData.leaseTerm || 0,

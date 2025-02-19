@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type Lease = {
   id: string;
+  contract_number: string;
   lessor_entity: string;
   commencement_date: string;
   expiration_date: string;
@@ -45,7 +46,8 @@ export function LeaseSummary() {
   const filteredLeases = leases?.filter(lease => {
     if (filters.searchText) {
       const searchLower = filters.searchText.toLowerCase();
-      if (!lease.lessor_entity.toLowerCase().includes(searchLower)) {
+      if (!lease.lessor_entity.toLowerCase().includes(searchLower) &&
+          !lease.contract_number?.toLowerCase().includes(searchLower)) {
         return false;
       }
     }

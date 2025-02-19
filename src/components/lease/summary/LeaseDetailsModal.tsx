@@ -33,7 +33,11 @@ export function LeaseDetailsModal({ lease, onClose }: LeaseDetailsModalProps) {
 
           <TabsContent value="schedule" className="mt-4">
             <div className="space-y-2">
-              <h3 className="font-semibold">Payment Details</h3>
+              <h3 className="font-semibold">Contract Information</h3>
+              <p>Contract Number: {lease.contract_number}</p>
+              <p>Lessor Legal Entity: {lease.lessor_entity}</p>
+              
+              <h3 className="font-semibold mt-4">Payment Details</h3>
               <p>Base Payment: ${lease.base_payment}</p>
               <p>Payment Interval: {lease.payment_interval}</p>
               <p>Start Date: {format(new Date(lease.commencement_date), "PP")}</p>

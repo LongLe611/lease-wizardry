@@ -50,7 +50,8 @@ export function LeaseGrid({ leases, isLoading, onLeaseSelect }: LeaseGridProps) 
       <TableHeader>
         <TableRow>
           <TableHead>Status</TableHead>
-          <TableHead>Lessor</TableHead>
+          <TableHead>Contract Number</TableHead>
+          <TableHead>Lessor Legal Entity</TableHead>
           <TableHead>Asset Type</TableHead>
           <TableHead>Start Date</TableHead>
           <TableHead>End Date</TableHead>
@@ -68,6 +69,7 @@ export function LeaseGrid({ leases, isLoading, onLeaseSelect }: LeaseGridProps) 
             onClick={() => onLeaseSelect(lease)}
           >
             <TableCell>{getStatusIndicator(lease)}</TableCell>
+            <TableCell>{lease.contract_number}</TableCell>
             <TableCell>{lease.lessor_entity}</TableCell>
             <TableCell>Property</TableCell>
             <TableCell>{format(new Date(lease.commencement_date), "PP")}</TableCell>
