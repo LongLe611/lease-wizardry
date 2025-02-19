@@ -55,15 +55,23 @@ export function ContractDetailsSection({ isLowValue, onDateChange }: ContractDet
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        <Label htmlFor="contract-number">Contract Number</Label>
+        <Input
+          id="contract-number"
+          placeholder="Enter contract number"
+          className="w-full"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="lessor">Lessor Legal Entity</Label>
-        <div className="relative">
-          <Input
-            id="lessor"
-            placeholder="Search lessor..."
-            className="w-full"
-            required
-          />
-        </div>
+        <Input
+          id="lessor"
+          placeholder="Enter lessor legal entity name"
+          className="w-full"
+          required
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
