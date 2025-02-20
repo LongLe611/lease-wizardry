@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaseGrid } from "./LeaseGrid";
@@ -8,10 +8,11 @@ import { LeaseDetailsModal } from "./LeaseDetailsModal";
 import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { NewLeaseDialog } from "../new-lease/NewLeaseDialog";
 
 type Lease = {
   id: string;
-  contract_number?: string; // Make contract_number optional
+  contract_number?: string;
   lessor_entity: string;
   commencement_date: string;
   expiration_date: string;
@@ -80,10 +81,13 @@ export function LeaseSummary() {
           filters={filters}
           onFiltersChange={setFilters}
         />
-        <Button onClick={handleExport}>
-          <FileDown className="mr-2 h-4 w-4" />
-          Export to PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleExport}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Export to PDF
+          </Button>
+          <NewLeaseDialog />
+        </div>
       </div>
 
       <LeaseGrid 
