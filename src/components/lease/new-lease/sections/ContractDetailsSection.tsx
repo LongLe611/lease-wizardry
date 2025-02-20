@@ -4,20 +4,27 @@ import { Input } from "@/components/ui/input";
 import { Calendar, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
 
 interface ContractDetailsProps {
   isLowValue: boolean;
   onDateChange: (dates: { commencementDate: Date | null; expirationDate: Date | null; leaseTerm: number | null }) => void;
+  onFieldChange?: (field: string, value: string) => void;
+  contractNumber?: string;
+  lessorEntity?: string;
 }
 
-export function ContractDetailsSection({ isLowValue, onDateChange }: ContractDetailsProps) {
+export function ContractDetailsSection({ 
+  isLowValue, 
+  onDateChange, 
+  onFieldChange,
+  contractNumber = '',
+  lessorEntity = ''
+}: ContractDetailsProps) {
   const [commencementDate, setCommencementDate] = useState<Date | null>(null);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [leaseTerm, setLeaseTerm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (commencementDate && expirationDate) {
@@ -31,7 +38,6 @@ export function ContractDetailsSection({ isLowValue, onDateChange }: ContractDet
       const calculatedYears = Math.round((diffTime / (1000 * 3600 * 24 * 365)) * 100) / 100;
       setLeaseTerm(calculatedYears);
 
-      // Validate lease term
       if (calculatedYears < 1 && !isLowValue) {
         setWarning("Term is less than 1 year. Consider checking low-value exemption.");
       } else if (calculatedYears >= 1) {
@@ -52,6 +58,12 @@ export function ContractDetailsSection({ isLowValue, onDateChange }: ContractDet
     }
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    if (onFieldChange) {
+      onFieldChange(field, value);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -59,6 +71,8 @@ export function ContractDetailsSection({ isLowValue, onDateChange }: ContractDet
         <Input
           id="contract-number"
           placeholder="Enter contract number"
+          value={contractNumber}
+          onChange={(e) => handleInputChange('contractNumber', e.target.value)}
           className="w-full"
           required
         />
@@ -69,6 +83,8 @@ export function ContractDetailsSection({ isLowValue, onDateChange }: ContractDet
         <Input
           id="lessor"
           placeholder="Enter lessor legal entity name"
+          value={lessorEntity}
+          onChange={(e) => handleInputChange('lessorEntity', e.target.value)}
           className="w-full"
           required
         />

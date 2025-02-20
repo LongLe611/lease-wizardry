@@ -53,6 +53,13 @@ export function NewLeaseForm() {
     }));
   };
 
+  const handleContractFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleSubmit = async () => {
     try {
       // Validate required fields
@@ -112,6 +119,9 @@ export function NewLeaseForm() {
           <ContractDetailsSection 
             isLowValue={isLowValue}
             onDateChange={handleDateChange}
+            onFieldChange={handleContractFieldChange}
+            contractNumber={formData.contractNumber}
+            lessorEntity={formData.lessorEntity}
           />
         </CardContent>
       </Card>
