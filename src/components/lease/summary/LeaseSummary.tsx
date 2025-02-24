@@ -104,8 +104,14 @@ export function LeaseSummary() {
         .delete()
         .in('id', selectedLeases);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
+      // Clear the selected leases first
+      setSelectedLeases([]);
+      
       // Invalidate and refetch the query to update the UI
       await queryClient.invalidateQueries({ queryKey: ['leases'] });
       await refetch();
@@ -115,12 +121,11 @@ export function LeaseSummary() {
         description: `${selectedLeases.length} lease(s) deleted successfully`
       });
 
-      setSelectedLeases([]); // Clear selection after successful delete
     } catch (error: any) {
       console.error('Delete error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete leases",
+        description: error.message || "Failed to delete leases",
         variant: "destructive"
       });
     } finally {
