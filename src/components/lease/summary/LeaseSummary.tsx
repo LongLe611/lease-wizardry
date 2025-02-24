@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaseGrid } from "./LeaseGrid";
 import { SearchFilters } from "./SearchFilters";
@@ -37,6 +37,7 @@ export function LeaseSummary() {
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
   const [selectedLeases, setSelectedLeases] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState({
     searchText: "",
     activeOnly: false,
@@ -44,6 +45,7 @@ export function LeaseSummary() {
     lowValueOnly: false
   });
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: leases, isLoading, refetch } = useQuery({
     queryKey: ['leases'],
@@ -96,6 +98,7 @@ export function LeaseSummary() {
 
   const handleDelete = async () => {
     try {
+      setIsDeleting(true);
       const { error } = await supabase
         .from('leases')
         .delete()
@@ -103,13 +106,16 @@ export function LeaseSummary() {
 
       if (error) throw error;
 
+      // Invalidate and refetch the query to update the UI
+      await queryClient.invalidateQueries({ queryKey: ['leases'] });
+      await refetch();
+
       toast({
         title: "Success",
         description: `${selectedLeases.length} lease(s) deleted successfully`
       });
 
-      setSelectedLeases([]);
-      refetch();
+      setSelectedLeases([]); // Clear selection after successful delete
     } catch (error: any) {
       toast({
         title: "Error",
@@ -117,6 +123,7 @@ export function LeaseSummary() {
         variant: "destructive"
       });
     } finally {
+      setIsDeleting(false);
       setShowDeleteDialog(false);
     }
   };
@@ -141,7 +148,7 @@ export function LeaseSummary() {
           <Button
             variant="destructive"
             onClick={() => setShowDeleteDialog(true)}
-            disabled={selectedLeases.length === 0}
+            disabled={selectedLeases.length === 0 || isDeleting}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete Lease{selectedLeases.length !== 1 ? 's' : ''}
@@ -177,8 +184,9 @@ export function LeaseSummary() {
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
