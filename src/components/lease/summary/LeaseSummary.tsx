@@ -47,7 +47,7 @@ export function LeaseSummary() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: leases, isLoading, refetch } = useQuery({
+  const { data: leases, isLoading } = useQuery({
     queryKey: ['leases'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -99,6 +99,7 @@ export function LeaseSummary() {
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
+      
       const { error } = await supabase
         .from('leases')
         .delete()
@@ -109,17 +110,23 @@ export function LeaseSummary() {
         throw error;
       }
 
-      // Clear the selected leases first
+      // Update the UI optimistically
+      queryClient.setQueryData(['leases'], (oldData: Lease[] | undefined) => {
+        if (!oldData) return [];
+        return oldData.filter(lease => !selectedLeases.includes(lease.id));
+      });
+
+      // Clear selected leases
       setSelectedLeases([]);
       
-      // Invalidate and refetch the query to update the UI
-      await queryClient.invalidateQueries({ queryKey: ['leases'] });
-      await refetch();
-
+      // Show success message
       toast({
         title: "Success",
         description: `${selectedLeases.length} lease(s) deleted successfully`
       });
+
+      // Invalidate and refetch in the background
+      await queryClient.invalidateQueries({ queryKey: ['leases'] });
 
     } catch (error: any) {
       console.error('Delete error:', error);
