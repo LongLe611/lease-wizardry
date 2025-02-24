@@ -117,6 +117,7 @@ export function LeaseSummary() {
 
       setSelectedLeases([]); // Clear selection after successful delete
     } catch (error: any) {
+      console.error('Delete error:', error);
       toast({
         title: "Error",
         description: "Failed to delete leases",
