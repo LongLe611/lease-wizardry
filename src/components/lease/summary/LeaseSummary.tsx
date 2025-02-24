@@ -6,9 +6,19 @@ import { LeaseGrid } from "./LeaseGrid";
 import { SearchFilters } from "./SearchFilters";
 import { LeaseDetailsModal } from "./LeaseDetailsModal";
 import { Button } from "@/components/ui/button";
-import { FileDown } from "lucide-react";
+import { FileDown, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { NewLeaseDialog } from "../new-lease/NewLeaseDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Lease = {
   id: string;
@@ -25,6 +35,8 @@ type Lease = {
 
 export function LeaseSummary() {
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
+  const [selectedLeases, setSelectedLeases] = useState<string[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [filters, setFilters] = useState({
     searchText: "",
     activeOnly: false,
@@ -33,7 +45,7 @@ export function LeaseSummary() {
   });
   const { toast } = useToast();
 
-  const { data: leases, isLoading } = useQuery({
+  const { data: leases, isLoading, refetch } = useQuery({
     queryKey: ['leases'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -74,6 +86,41 @@ export function LeaseSummary() {
     // Implement PDF export logic here
   };
 
+  const handleSelectionChange = (id: string, isSelected: boolean) => {
+    setSelectedLeases(prev => 
+      isSelected 
+        ? [...prev, id]
+        : prev.filter(leaseId => leaseId !== id)
+    );
+  };
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('leases')
+        .delete()
+        .in('id', selectedLeases);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedLeases.length} lease(s) deleted successfully`
+      });
+
+      setSelectedLeases([]);
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to delete leases",
+        variant: "destructive"
+      });
+    } finally {
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -81,10 +128,23 @@ export function LeaseSummary() {
           filters={filters}
           onFiltersChange={setFilters}
         />
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {selectedLeases.length > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {selectedLeases.length} item{selectedLeases.length !== 1 ? 's' : ''} selected
+            </span>
+          )}
           <Button onClick={handleExport}>
             <FileDown className="mr-2 h-4 w-4" />
             Export to PDF
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={selectedLeases.length === 0}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Lease{selectedLeases.length !== 1 ? 's' : ''}
           </Button>
           <NewLeaseDialog />
         </div>
@@ -94,12 +154,35 @@ export function LeaseSummary() {
         leases={filteredLeases || []}
         isLoading={isLoading}
         onLeaseSelect={setSelectedLease}
+        selectedLeases={selectedLeases}
+        onSelectionChange={handleSelectionChange}
       />
 
       <LeaseDetailsModal
         lease={selectedLease}
         onClose={() => setSelectedLease(null)}
       />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedLeases.length} selected lease{selectedLeases.length !== 1 ? 's' : ''}.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
