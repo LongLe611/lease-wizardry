@@ -5,33 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { LeaseGrid } from "./LeaseGrid";
 import { SearchFilters } from "./SearchFilters";
 import { LeaseDetailsModal } from "./LeaseDetailsModal";
-import { Button } from "@/components/ui/button";
-import { FileDown, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { NewLeaseDialog } from "../new-lease/NewLeaseDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-type Lease = {
-  id: string;
-  contract_number?: string;
-  lessor_entity: string;
-  commencement_date: string;
-  expiration_date: string;
-  payment_interval: "monthly" | "quarterly" | "annual";
-  base_payment: number;
-  is_low_value: boolean;
-  created_at: string;
-  updated_at: string;
-};
+import { DeleteLeasesDialog } from "./DeleteLeasesDialog";
+import { LeaseActions } from "./LeaseActions";
+import { Lease } from "./types";
 
 export function LeaseSummary() {
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
@@ -85,7 +62,6 @@ export function LeaseSummary() {
       title: "Export Started",
       description: "Your PDF is being generated..."
     });
-    // Implement PDF export logic here
   };
 
   const handleSelectionChange = (id: string, isSelected: boolean) => {
@@ -110,22 +86,18 @@ export function LeaseSummary() {
         throw error;
       }
 
-      // Update the UI optimistically
       queryClient.setQueryData(['leases'], (oldData: Lease[] | undefined) => {
         if (!oldData) return [];
         return oldData.filter(lease => !selectedLeases.includes(lease.id));
       });
 
-      // Clear selected leases
       setSelectedLeases([]);
       
-      // Show success message
       toast({
         title: "Success",
         description: `${selectedLeases.length} lease(s) deleted successfully`
       });
 
-      // Invalidate and refetch in the background
       await queryClient.invalidateQueries({ queryKey: ['leases'] });
 
     } catch (error: any) {
@@ -148,26 +120,12 @@ export function LeaseSummary() {
           filters={filters}
           onFiltersChange={setFilters}
         />
-        <div className="flex items-center gap-2">
-          {selectedLeases.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {selectedLeases.length} item{selectedLeases.length !== 1 ? 's' : ''} selected
-            </span>
-          )}
-          <Button onClick={handleExport}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Export to PDF
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={selectedLeases.length === 0 || isDeleting}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete Lease{selectedLeases.length !== 1 ? 's' : ''}
-          </Button>
-          <NewLeaseDialog />
-        </div>
+        <LeaseActions
+          selectedCount={selectedLeases.length}
+          onExport={handleExport}
+          onDelete={() => setShowDeleteDialog(true)}
+          isDeleting={isDeleting}
+        />
       </div>
 
       <LeaseGrid 
@@ -183,27 +141,13 @@ export function LeaseSummary() {
         onClose={() => setSelectedLease(null)}
       />
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete {selectedLeases.length} selected lease{selectedLeases.length !== 1 ? 's' : ''}.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteLeasesDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+        count={selectedLeases.length}
+      />
     </div>
   );
 }
