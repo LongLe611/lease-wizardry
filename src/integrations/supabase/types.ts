@@ -11,57 +11,72 @@ export type Database = {
     Tables: {
       leases: {
         Row: {
+          asset_description: string | null
+          asset_type: string | null
           base_payment: number
           base_year: number | null
           commencement_date: string
           contract_number: string
           cpi_index_rate: number | null
           created_at: string | null
+          deposit_amount: number | null
           discount_rate: number
           expiration_date: string
           id: string
+          interest_rate: number
           is_low_value: boolean | null
           lease_term: number
           lessor_entity: string
           payment_interval: Database["public"]["Enums"]["payment_interval"]
+          payment_timing: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
           residual_value: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          asset_description?: string | null
+          asset_type?: string | null
           base_payment: number
           base_year?: number | null
           commencement_date: string
           contract_number: string
           cpi_index_rate?: number | null
           created_at?: string | null
+          deposit_amount?: number | null
           discount_rate: number
           expiration_date: string
           id?: string
+          interest_rate?: number
           is_low_value?: boolean | null
           lease_term: number
           lessor_entity: string
           payment_interval: Database["public"]["Enums"]["payment_interval"]
+          payment_timing?: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
           residual_value?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          asset_description?: string | null
+          asset_type?: string | null
           base_payment?: number
           base_year?: number | null
           commencement_date?: string
           contract_number?: string
           cpi_index_rate?: number | null
           created_at?: string | null
+          deposit_amount?: number | null
           discount_rate?: number
           expiration_date?: string
           id?: string
+          interest_rate?: number
           is_low_value?: boolean | null
           lease_term?: number
           lessor_entity?: string
           payment_interval?: Database["public"]["Enums"]["payment_interval"]
+          payment_timing?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
           residual_value?: number | null
           updated_at?: string | null
