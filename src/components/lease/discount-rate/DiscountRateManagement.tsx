@@ -1,16 +1,21 @@
-
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, Save, Trash2, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 type DiscountRateTable = {
   id: string;
@@ -50,9 +55,13 @@ export function DiscountRateManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTableId, setSelectedTableId] = useState<string>("");
+  const [newVersionDate, setNewVersionDate] = useState<Date>();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [localRates, setLocalRates] = useState<DiscountRate[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Fetch rate tables
-  const { data: rateTables } = useQuery({
+  const { data: rateTables, isLoading: isLoadingTables } = useQuery({
     queryKey: ['discount-rate-tables'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -65,8 +74,7 @@ export function DiscountRateManagement() {
     }
   });
 
-  // Fetch rates for selected table
-  const { data: rates } = useQuery({
+  const { data: rates, isLoading: isLoadingRates } = useQuery({
     queryKey: ['discount-rates', selectedTableId],
     queryFn: async () => {
       if (!selectedTableId) return [];
@@ -78,16 +86,19 @@ export function DiscountRateManagement() {
       if (error) throw error;
       return data as DiscountRate[];
     },
-    enabled: !!selectedTableId
+    enabled: !!selectedTableId,
+    onSuccess: (data) => {
+      setLocalRates(data);
+      setUnsavedChanges(false);
+    }
   });
 
-  // Create new rate table mutation
   const createRateTable = useMutation({
-    mutationFn: async (effectiveDate: string) => {
+    mutationFn: async (effectiveDate: Date) => {
       const { data: tableData, error: tableError } = await supabase
         .from('discount_rate_tables')
         .insert([{ 
-          effective_date: effectiveDate,
+          effective_date: format(effectiveDate, 'yyyy-MM-dd'),
           is_current: true 
         }])
         .select()
@@ -95,7 +106,6 @@ export function DiscountRateManagement() {
 
       if (tableError) throw tableError;
 
-      // Copy rates from most recent table or create default rates
       const previousRates = rates || [];
       const newRates = LEASE_TERM_BUCKETS.map(bucket => ({
         table_id: tableData.id,
@@ -110,8 +120,11 @@ export function DiscountRateManagement() {
       if (ratesError) throw ratesError;
       return tableData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['discount-rate-tables'] });
+      setSelectedTableId(data.id);
+      setIsCreateDialogOpen(false);
+      setNewVersionDate(undefined);
       toast({
         title: "Success",
         description: "New rate table created successfully",
@@ -126,21 +139,48 @@ export function DiscountRateManagement() {
     }
   });
 
-  // Update rate mutation
-  const updateRate = useMutation({
-    mutationFn: async ({ id, yearly_rate }: { id: string, yearly_rate: number }) => {
+  const updateRates = useMutation({
+    mutationFn: async (rates: DiscountRate[]) => {
       const { error } = await supabase
         .from('discount_rates')
-        .update({ yearly_rate })
-        .eq('id', id);
+        .upsert(rates);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discount-rates', selectedTableId] });
+      setUnsavedChanges(false);
       toast({
         title: "Success",
-        description: "Rate updated successfully",
+        description: "Rates updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteRateTable = useMutation({
+    mutationFn: async (tableId: string) => {
+      const { error } = await supabase
+        .from('discount_rate_tables')
+        .delete()
+        .eq('id', tableId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['discount-rate-tables'] });
+      const newCurrentTable = rateTables?.find(t => t.id !== selectedTableId);
+      setSelectedTableId(newCurrentTable?.id || "");
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Rate table deleted successfully",
       });
     },
     onError: (error) => {
@@ -153,16 +193,37 @@ export function DiscountRateManagement() {
   });
 
   const handleCreateNewTable = () => {
-    const today = new Date().toISOString().split('T')[0];
-    createRateTable.mutate(today);
-  };
-
-  const handleRateChange = (rateId: string, value: string) => {
-    const numericValue = parseFloat(value);
-    if (!isNaN(numericValue)) {
-      updateRate.mutate({ id: rateId, yearly_rate: numericValue });
+    if (newVersionDate) {
+      createRateTable.mutate(newVersionDate);
     }
   };
+
+  const handleRateChange = (bucket: string, value: string) => {
+    const numericValue = parseFloat(value);
+    if (!isNaN(numericValue)) {
+      const newRates = localRates.map(rate => 
+        rate.lease_term_bucket === bucket 
+          ? { ...rate, yearly_rate: numericValue }
+          : rate
+      );
+      setLocalRates(newRates);
+      setUnsavedChanges(true);
+    }
+  };
+
+  const handleApplyChanges = () => {
+    if (unsavedChanges && localRates.length > 0) {
+      updateRates.mutate(localRates);
+    }
+  };
+
+  const handleDeleteTable = () => {
+    if (selectedTableId && (!rateTables || rateTables.length > 1)) {
+      deleteRateTable.mutate(selectedTableId);
+    }
+  };
+
+  const selectedTable = rateTables?.find(table => table.id === selectedTableId);
 
   return (
     <div className="space-y-6">
@@ -175,9 +236,112 @@ export function DiscountRateManagement() {
             Manage and view historical discount rates for lease calculations
           </p>
         </div>
-        <Button onClick={handleCreateNewTable}>
-          <Plus className="mr-2 h-4 w-4" /> New Rate Table
-        </Button>
+        <div className="flex gap-2">
+          {selectedTableId && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete Rate Table
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the rate table
+                          and all its associated rates.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteTable}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TooltipTrigger>
+                <TooltipContent>Delete this rate table version</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  onClick={handleApplyChanges}
+                  disabled={!unsavedChanges}
+                >
+                  <Save className="mr-2 h-4 w-4" /> 
+                  Apply Changes
+                  {unsavedChanges && (
+                    <span className="ml-2 h-2 w-2 rounded-full bg-blue-500" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Save changes to the current rate table</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" /> New Rate Table
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Rate Table</DialogTitle>
+                      <DialogDescription>
+                        Select an effective date for the new rate table. This will create a new version
+                        with the current rates as a starting point.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                      <Label htmlFor="version-date">Version Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !newVersionDate && "text-muted-foreground"
+                            )}
+                          >
+                            {newVersionDate ? format(newVersionDate, "PPP") : "Select a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={newVersionDate}
+                            onSelect={setNewVersionDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <DialogFooter>
+                      <Button 
+                        onClick={handleCreateNewTable}
+                        disabled={!newVersionDate}
+                      >
+                        Create
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </TooltipTrigger>
+              <TooltipContent>Create a new rate table version</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <Card>
@@ -204,7 +368,29 @@ export function DiscountRateManagement() {
       {selectedTableId && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Discount Rates</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">
+                Discount Rates
+                {selectedTable && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    Version: {format(new Date(selectedTable.effective_date), 'dd-MMM-yyyy')}
+                  </span>
+                )}
+              </CardTitle>
+              {selectedTable?.is_current && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center text-sm text-green-600">
+                        <Info className="mr-1 h-4 w-4" />
+                        Current Version
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>This is the current rate table used for new leases</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
@@ -220,7 +406,7 @@ export function DiscountRateManagement() {
                 </TableHeader>
                 <TableBody>
                   {LEASE_TERM_BUCKETS.map(bucket => {
-                    const rate = rates?.find(r => r.lease_term_bucket === bucket);
+                    const rate = localRates?.find(r => r.lease_term_bucket === bucket);
                     const yearlyRate = rate?.yearly_rate || 0;
                     
                     return (
@@ -230,7 +416,7 @@ export function DiscountRateManagement() {
                           <Input
                             type="number"
                             value={yearlyRate}
-                            onChange={(e) => rate && handleRateChange(rate.id, e.target.value)}
+                            onChange={(e) => handleRateChange(bucket, e.target.value)}
                             step="0.01"
                             className="w-24 ml-auto"
                           />
