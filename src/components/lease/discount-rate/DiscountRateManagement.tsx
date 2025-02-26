@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Plus, Save, Trash2, AlertTriangle, Info } from "lucide-react";
@@ -57,9 +57,9 @@ export function DiscountRateManagement() {
   const [selectedTableId, setSelectedTableId] = useState<string>("");
   const [newVersionDate, setNewVersionDate] = useState<Date>();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [localRates, setLocalRates] = useState<DiscountRate[]>([]);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: rateTables, isLoading: isLoadingTables } = useQuery({
     queryKey: ['discount-rate-tables'],
@@ -142,31 +142,6 @@ export function DiscountRateManagement() {
     }
   });
 
-  const updateRates = useMutation({
-    mutationFn: async (rates: DiscountRate[]) => {
-      const { error } = await supabase
-        .from('discount_rates')
-        .upsert(rates);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discount-rates', selectedTableId] });
-      setUnsavedChanges(false);
-      toast({
-        title: "Success",
-        description: "Rates updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
-
   const deleteRateTable = useMutation({
     mutationFn: async (tableId: string) => {
       const { error } = await supabase
@@ -195,9 +170,40 @@ export function DiscountRateManagement() {
     }
   });
 
+  const updateRates = useMutation({
+    mutationFn: async (rates: DiscountRate[]) => {
+      const { error } = await supabase
+        .from('discount_rates')
+        .upsert(rates);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['discount-rates', selectedTableId] });
+      setUnsavedChanges(false);
+      toast({
+        title: "Success",
+        description: "Rates updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleCreateNewTable = () => {
     if (newVersionDate) {
       createRateTable.mutate(newVersionDate);
+    }
+  };
+
+  const handleDeleteTable = () => {
+    if (selectedTableId && (!rateTables || rateTables.length > 1)) {
+      deleteRateTable.mutate(selectedTableId);
     }
   };
 
@@ -217,12 +223,6 @@ export function DiscountRateManagement() {
   const handleApplyChanges = () => {
     if (unsavedChanges && localRates.length > 0) {
       updateRates.mutate(localRates);
-    }
-  };
-
-  const handleDeleteTable = () => {
-    if (selectedTableId && (!rateTables || rateTables.length > 1)) {
-      deleteRateTable.mutate(selectedTableId);
     }
   };
 
@@ -289,61 +289,40 @@ export function DiscountRateManagement() {
             </Tooltip>
           </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" /> New Rate Table
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New Rate Table</DialogTitle>
-                      <DialogDescription>
-                        Select an effective date for the new rate table. This will create a new version
-                        with the current rates as a starting point.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                      <Label htmlFor="version-date">Version Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !newVersionDate && "text-muted-foreground"
-                            )}
-                          >
-                            {newVersionDate ? format(newVersionDate, "PPP") : "Select a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={newVersionDate}
-                            onSelect={setNewVersionDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <DialogFooter>
-                      <Button 
-                        onClick={handleCreateNewTable}
-                        disabled={!newVersionDate}
-                      >
-                        Create
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </TooltipTrigger>
-              <TooltipContent>Create a new rate table version</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> New Rate Table
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Rate Table</DialogTitle>
+                <DialogDescription>
+                  Select an effective date for the new rate table. This will create a new version
+                  with the current rates as a starting point.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Label htmlFor="version-date">Version Date</Label>
+                <Calendar
+                  mode="single"
+                  selected={newVersionDate}
+                  onSelect={setNewVersionDate}
+                  initialFocus
+                  className="rounded-md border"
+                />
+              </div>
+              <DialogFooter>
+                <Button 
+                  onClick={handleCreateNewTable}
+                  disabled={!newVersionDate}
+                >
+                  Create
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
