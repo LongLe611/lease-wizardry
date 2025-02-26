@@ -9,6 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      discount_rate_tables: {
+        Row: {
+          created_at: string | null
+          effective_date: string
+          id: string
+          is_current: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          effective_date: string
+          id?: string
+          is_current?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          effective_date?: string
+          id?: string
+          is_current?: boolean | null
+        }
+        Relationships: []
+      }
+      discount_rates: {
+        Row: {
+          id: string
+          lease_term_bucket: string
+          table_id: string | null
+          yearly_rate: number
+        }
+        Insert: {
+          id?: string
+          lease_term_bucket: string
+          table_id?: string | null
+          yearly_rate: number
+        }
+        Update: {
+          id?: string
+          lease_term_bucket?: string
+          table_id?: string | null
+          yearly_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_rates_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "discount_rate_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leases: {
         Row: {
           asset_description: string | null
@@ -30,6 +80,7 @@ export type Database = {
           payment_interval: Database["public"]["Enums"]["payment_interval"]
           payment_timing: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
+          rate_table_id: string | null
           residual_value: number | null
           updated_at: string | null
           user_id: string
@@ -54,6 +105,7 @@ export type Database = {
           payment_interval: Database["public"]["Enums"]["payment_interval"]
           payment_timing?: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
+          rate_table_id?: string | null
           residual_value?: number | null
           updated_at?: string | null
           user_id: string
@@ -78,11 +130,20 @@ export type Database = {
           payment_interval?: Database["public"]["Enums"]["payment_interval"]
           payment_timing?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
+          rate_table_id?: string | null
           residual_value?: number | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leases_rate_table_id_fkey"
+            columns: ["rate_table_id"]
+            isOneToOne: false
+            referencedRelation: "discount_rate_tables"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
