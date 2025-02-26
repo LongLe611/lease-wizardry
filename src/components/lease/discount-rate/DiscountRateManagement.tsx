@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Plus, Save, Trash2, AlertTriangle, Info } from "lucide-react";
@@ -86,12 +86,15 @@ export function DiscountRateManagement() {
       if (error) throw error;
       return data as DiscountRate[];
     },
-    enabled: !!selectedTableId,
-    onSuccess: (data) => {
-      setLocalRates(data);
+    enabled: !!selectedTableId
+  });
+
+  useEffect(() => {
+    if (rates) {
+      setLocalRates(rates);
       setUnsavedChanges(false);
     }
-  });
+  }, [rates]);
 
   const createRateTable = useMutation({
     mutationFn: async (effectiveDate: Date) => {
