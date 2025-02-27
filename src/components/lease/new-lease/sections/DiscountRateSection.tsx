@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, RefreshCw, InfoCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, RefreshCw, CircleInfo, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
@@ -273,7 +273,7 @@ export function DiscountRateSection({
           <Card className="border-yellow-300 bg-yellow-50">
             <CardContent className="p-3">
               <div className="flex items-start text-sm text-yellow-800">
-                <InfoCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                <CircleInfo className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
                 <div>
                   <p>{warningMessage}</p>
                   <p className="mt-1">Please enter a rate manually or select a different table.</p>

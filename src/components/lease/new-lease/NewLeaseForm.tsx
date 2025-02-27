@@ -23,6 +23,7 @@ export function NewLeaseForm() {
     cpiIndexRate: null as number | null,
     baseYear: null as number | null,
     discountRate: null as number | null,
+    rateTableId: null as string | null,
   });
   const { toast } = useToast();
 
@@ -50,6 +51,13 @@ export function NewLeaseForm() {
     setFormData(prev => ({
       ...prev,
       discountRate: rate
+    }));
+  };
+
+  const handleRateTableChange = (tableId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      rateTableId: tableId
     }));
   };
 
@@ -86,7 +94,8 @@ export function NewLeaseForm() {
         base_year: formData.baseYear,
         discount_rate: formData.discountRate,
         is_low_value: isLowValue,
-        user_id: userData.user.id
+        user_id: userData.user.id,
+        rate_table_id: formData.rateTableId
       };
 
       const { error: insertError } = await supabase
@@ -151,7 +160,12 @@ export function NewLeaseForm() {
           <CardTitle>Discount Rate</CardTitle>
         </CardHeader>
         <CardContent>
-          <DiscountRateSection onRateChange={handleDiscountRateChange} />
+          <DiscountRateSection 
+            onRateChange={handleDiscountRateChange}
+            onRateTableChange={handleRateTableChange}
+            leaseTerm={formData.leaseTerm}
+            paymentInterval={formData.paymentInterval}
+          />
         </CardContent>
       </Card>
 
