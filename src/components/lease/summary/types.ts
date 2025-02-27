@@ -15,12 +15,12 @@ export type Lease = {
   payment_timing?: "beginning" | "end";
   deposit_amount?: number;
   interest_rate: number;
+  discount_rate: number;
   lease_term: number;
 };
 
 export type LeaseScheduleRow = {
   period: number;
-  months: number;
   startDate: string;
   endDate: string;
   discountFactor: number;

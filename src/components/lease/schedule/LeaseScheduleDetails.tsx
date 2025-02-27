@@ -1,7 +1,7 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, addMonths, subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
@@ -52,24 +52,41 @@ export function LeaseScheduleDetails() {
     return leases?.find(lease => lease.id === selectedLeaseId);
   }, [leases, selectedLeaseId]);
 
+  // Calculate intervals based on payment frequency
+  const getIntervalMonths = (paymentInterval: string): number => {
+    switch (paymentInterval.toLowerCase()) {
+      case 'quarterly':
+        return 3;
+      case 'annual':
+        return 12;
+      case 'monthly':
+      default:
+        return 1;
+    }
+  };
+
   // Calculate discount factors and present values
   const calculateSchedule = (lease: Lease): LeaseScheduleRow[] => {
     if (!lease) return [];
 
-    const monthlyRate = lease.interest_rate / 100 / 12;
-    const totalPeriods = lease.lease_term * 12;
+    const intervalMonths = getIntervalMonths(lease.payment_interval);
+    const periodsPerYear = 12 / intervalMonths;
+    const discountRatePerPeriod = lease.discount_rate / 100 / periodsPerYear;
+    const totalPeriods = Math.ceil(lease.lease_term * periodsPerYear);
     const schedule: LeaseScheduleRow[] = [];
 
     for (let i = 0; i < totalPeriods; i++) {
-      const discountFactor = 1 / Math.pow(1 + monthlyRate, i + 1);
+      const discountFactor = 1 / Math.pow(1 + discountRatePerPeriod, i + 1);
       const startDate = new Date(lease.commencement_date);
-      startDate.setMonth(startDate.getMonth() + i);
+      startDate.setMonth(startDate.getMonth() + i * intervalMonths);
+      
       const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + 1);
+      endDate.setMonth(endDate.getMonth() + intervalMonths);
+      // Subtract one day to get end of month
+      endDate.setDate(endDate.getDate() - 1);
 
       schedule.push({
         period: i + 1,
-        months: 1,
         startDate: format(startDate, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd'),
         discountFactor,
@@ -85,7 +102,7 @@ export function LeaseScheduleDetails() {
   const calculateMonthlySchedule = (lease: Lease): MonthlyScheduleRow[] => {
     if (!lease) return [];
 
-    const monthlyRate = lease.interest_rate / 100 / 12;
+    const discountRatePerMonth = lease.discount_rate / 100 / 12;
     const totalPeriods = lease.lease_term * 12;
     const schedule: MonthlyScheduleRow[] = [];
     const totalPV = calculateSchedule(lease).reduce((sum, row) => sum + row.presentValue, 0);
@@ -94,8 +111,15 @@ export function LeaseScheduleDetails() {
     let openingLiability = totalPV;
 
     for (let i = 0; i < totalPeriods; i++) {
-      const interestExpense = openingLiability * monthlyRate;
-      const payment = lease.base_payment;
+      const interestExpense = openingLiability * discountRatePerMonth;
+      
+      // Calculate payment amount based on payment interval
+      let payment = 0;
+      const intervalMonths = getIntervalMonths(lease.payment_interval);
+      if (i % intervalMonths === 0) {
+        payment = lease.base_payment;
+      }
+      
       const principalReduction = payment - interestExpense;
       const closingLiability = openingLiability - principalReduction;
       const date = new Date(lease.commencement_date);
@@ -186,8 +210,8 @@ export function LeaseScheduleDetails() {
                   <Input value={formatCurrency(selectedLease.deposit_amount || 0)} readOnly />
                 </div>
                 <div className="space-y-2">
-                  <Label>Interest Rate (%)</Label>
-                  <Input value={formatNumber(selectedLease.interest_rate)} readOnly />
+                  <Label>Discount Rate (%)</Label>
+                  <Input value={formatNumber(selectedLease.discount_rate)} readOnly />
                 </div>
               </>
             )}
@@ -210,7 +234,6 @@ export function LeaseScheduleDetails() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Period</TableHead>
-                        <TableHead>Months</TableHead>
                         <TableHead>Start Date</TableHead>
                         <TableHead>End Date</TableHead>
                         <TableHead className="text-right">Discount Factor</TableHead>
@@ -222,7 +245,6 @@ export function LeaseScheduleDetails() {
                       {leaseSchedule.map((row) => (
                         <TableRow key={row.period}>
                           <TableCell>{row.period}</TableCell>
-                          <TableCell>{row.months}</TableCell>
                           <TableCell>{format(new Date(row.startDate), 'PP')}</TableCell>
                           <TableCell>{format(new Date(row.endDate), 'PP')}</TableCell>
                           <TableCell className="text-right">{formatNumber(row.discountFactor, 4)}</TableCell>
@@ -231,7 +253,7 @@ export function LeaseScheduleDetails() {
                         </TableRow>
                       ))}
                       <TableRow className="font-bold bg-muted">
-                        <TableCell colSpan={5}>Total</TableCell>
+                        <TableCell colSpan={4}>Total</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(leaseSchedule.reduce((sum, row) => sum + row.payment, 0))}
                         </TableCell>
