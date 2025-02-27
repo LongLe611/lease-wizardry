@@ -31,6 +31,8 @@ export function NewLeaseDialog() {
     cpiIndexRate: null as number | null,
     baseYear: null as number | null,
     discountRate: null as number | null,
+    rateTableId: null as string | null,
+    leaseTermBucket: null as string | null,
   });
   const { toast } = useToast();
 
@@ -61,6 +63,13 @@ export function NewLeaseDialog() {
     }));
   };
 
+  const handleRateTableChange = (tableId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      rateTableId: tableId
+    }));
+  };
+
   const handleContractFieldChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -73,12 +82,36 @@ export function NewLeaseDialog() {
       // Validate required fields
       if (!formData.commencementDate || !formData.expirationDate || !formData.discountRate || 
           !formData.paymentInterval || !formData.paymentType || !formData.basePayment ||
-          !formData.contractNumber || !formData.lessorEntity) {
+          !formData.contractNumber || !formData.lessorEntity || !formData.rateTableId) {
         throw new Error("Please fill in all required fields");
       }
 
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
+
+      // Get the rate table details for audit trail
+      let rateTableEffectiveDate = null;
+      if (formData.rateTableId) {
+        const { data: tableData, error: tableError } = await supabase
+          .from('discount_rate_tables')
+          .select('effective_date')
+          .eq('id', formData.rateTableId)
+          .single();
+        
+        if (!tableError && tableData) {
+          rateTableEffectiveDate = tableData.effective_date;
+        }
+      }
+
+      // Determine lease term bucket for audit trail
+      const getLeaseTermBucket = (term: number): string => {
+        if (term <= 3) return "1-3 year";
+        if (term > 3 && term <= 5) return "3-5 year";
+        if (term > 5 && term <= 10) return "5-10 year";
+        if (term > 10 && term <= 15) return "10-15 year";
+        if (term > 15 && term <= 30) return "15-30 year";
+        return ">30 year";
+      };
 
       // Format dates and prepare data according to the database schema
       const leaseData = {
@@ -94,7 +127,8 @@ export function NewLeaseDialog() {
         base_year: formData.baseYear,
         discount_rate: formData.discountRate,
         is_low_value: isLowValue,
-        user_id: userData.user.id
+        user_id: userData.user.id,
+        rate_table_id: formData.rateTableId
       };
 
       const { error: insertError } = await supabase
@@ -156,7 +190,12 @@ export function NewLeaseDialog() {
 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Discount Rate</h3>
-            <DiscountRateSection onRateChange={handleDiscountRateChange} />
+            <DiscountRateSection 
+              onRateChange={handleDiscountRateChange}
+              onRateTableChange={handleRateTableChange}
+              leaseTerm={formData.leaseTerm}
+              paymentInterval={formData.paymentInterval}
+            />
           </div>
 
           <div className="flex justify-end pt-4">
