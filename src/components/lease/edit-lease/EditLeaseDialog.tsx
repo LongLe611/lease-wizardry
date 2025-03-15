@@ -1,20 +1,15 @@
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PencilLine } from "lucide-react";
-import { ContractDetailsSection } from "../new-lease/sections/ContractDetailsSection";
-import { PaymentTermsSection } from "../new-lease/sections/PaymentTermsSection";
-import { AssetClassificationSection } from "../new-lease/sections/AssetClassificationSection";
-import { DiscountRateSection } from "../new-lease/sections/DiscountRateSection";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Lease } from "../summary/types";
+import { NewLeaseFormContent } from "../new-lease/NewLeaseFormContent";
 
 interface EditLeaseDialogProps {
   lease: Lease | null;
@@ -176,62 +171,19 @@ export function EditLeaseDialog({
         <DialogHeader>
           <DialogTitle>Edit Existing Lease</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 py-4">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Contract Details</h3>
-            <ContractDetailsSection 
-              isLowValue={isLowValue}
-              onDateChange={handleDateChange}
-              onFieldChange={handleContractFieldChange}
-              contractNumber={formData.contractNumber}
-              lessorEntity={formData.lessorEntity}
-              initialCommencementDate={formData.commencementDate}
-              initialExpirationDate={formData.expirationDate}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Payment Terms</h3>
-            <PaymentTermsSection 
-              onPaymentTermsChange={handlePaymentTermsChange}
-              initialPaymentInterval={formData.paymentInterval}
-              initialPaymentType={formData.paymentType}
-              initialBasePayment={formData.basePayment}
-              initialCpiIndexRate={formData.cpiIndexRate}
-              initialBaseYear={formData.baseYear}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Asset Classification</h3>
-            <AssetClassificationSection 
-              onLowValueChange={setIsLowValue}
-              initialIsLowValue={isLowValue}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Discount Rate</h3>
-            <DiscountRateSection 
-              onRateChange={handleDiscountRateChange}
-              onRateTableChange={handleRateTableChange}
-              leaseTerm={formData.leaseTerm}
-              paymentInterval={formData.paymentInterval}
-              initialDiscountRate={formData.discountRate}
-              initialRateTableId={formData.rateTableId}
-            />
-          </div>
-
-          <div className="flex justify-end pt-4">
-            <Button 
-              onClick={handleSubmit}
-              className="bg-black hover:bg-gray-800 text-white"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Updating..." : "Apply Changes"}
-            </Button>
-          </div>
-        </div>
+        <NewLeaseFormContent 
+          isLowValue={isLowValue}
+          formData={formData}
+          onLowValueChange={setIsLowValue}
+          onDateChange={handleDateChange}
+          onPaymentTermsChange={handlePaymentTermsChange}
+          onDiscountRateChange={handleDiscountRateChange}
+          onRateTableChange={handleRateTableChange}
+          onContractFieldChange={handleContractFieldChange}
+          onSubmit={handleSubmit}
+          submitLabel="Apply Changes"
+          isSubmitting={isSubmitting}
+        />
       </DialogContent>
     </Dialog>
   );

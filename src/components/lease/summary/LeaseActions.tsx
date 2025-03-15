@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { FileDown, Trash2, PencilLine, Plus } from "lucide-react";
+import { FileDown, Trash2, PencilLine } from "lucide-react";
 import { NewLeaseDialog } from "../new-lease/NewLeaseDialog";
 import { EditLeaseDialog } from "../edit-lease/EditLeaseDialog";
 import { useState } from "react";
@@ -54,12 +54,14 @@ export function LeaseActions({
       </Button>
       <NewLeaseDialog />
       
-      <EditLeaseDialog 
-        lease={selectedLease}
-        isOpen={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onLeaseUpdated={onLeaseUpdated}
-      />
+      {selectedLease && (
+        <EditLeaseDialog 
+          lease={selectedLease}
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onLeaseUpdated={onLeaseUpdated}
+        />
+      )}
     </div>
   );
 }
