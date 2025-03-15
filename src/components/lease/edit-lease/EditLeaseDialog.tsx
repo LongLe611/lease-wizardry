@@ -44,9 +44,10 @@ export function EditLeaseDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  // Initialize form data from lease when the component mounts or lease changes
+  // Initialize form data from lease when isOpen changes or lease changes
   useEffect(() => {
-    if (lease) {
+    if (lease && isOpen) {
+      console.log("Loading lease data for editing:", lease);
       setFormData({
         contractNumber: lease.contract_number || '',
         lessorEntity: lease.lessor_entity,
@@ -108,7 +109,14 @@ export function EditLeaseDialog({
   };
 
   const handleSubmit = async () => {
-    if (!lease) return;
+    if (!lease) {
+      toast({
+        title: "Error",
+        description: "No lease selected for editing",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       setIsSubmitting(true);
@@ -137,6 +145,8 @@ export function EditLeaseDialog({
         rate_table_id: formData.rateTableId,
         updated_at: new Date().toISOString()
       };
+
+      console.log("Updating lease with data:", leaseData);
 
       const { error: updateError } = await supabase
         .from('leases')
@@ -173,19 +183,25 @@ export function EditLeaseDialog({
             Make changes to your lease details below.
           </DialogDescription>
         </DialogHeader>
-        <NewLeaseFormContent 
-          isLowValue={isLowValue}
-          formData={formData}
-          onLowValueChange={setIsLowValue}
-          onDateChange={handleDateChange}
-          onPaymentTermsChange={handlePaymentTermsChange}
-          onDiscountRateChange={handleDiscountRateChange}
-          onRateTableChange={handleRateTableChange}
-          onContractFieldChange={handleContractFieldChange}
-          onSubmit={handleSubmit}
-          submitLabel="Apply Changes"
-          isSubmitting={isSubmitting}
-        />
+        {lease ? (
+          <NewLeaseFormContent 
+            isLowValue={isLowValue}
+            formData={formData}
+            onLowValueChange={setIsLowValue}
+            onDateChange={handleDateChange}
+            onPaymentTermsChange={handlePaymentTermsChange}
+            onDiscountRateChange={handleDiscountRateChange}
+            onRateTableChange={handleRateTableChange}
+            onContractFieldChange={handleContractFieldChange}
+            onSubmit={handleSubmit}
+            submitLabel="Apply Changes"
+            isSubmitting={isSubmitting}
+          />
+        ) : (
+          <div className="py-4 text-center text-muted-foreground">
+            No lease selected for editing. Please select a lease first.
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,27 +64,34 @@ export function LeaseSummary() {
   };
 
   const handleSelectionChange = (id: string, isSelected: boolean) => {
-    setSelectedLeases(prev => 
-      isSelected 
-        ? [...prev, id]
-        : prev.filter(leaseId => leaseId !== id)
-    );
-    
-    // If only one lease is selected, set it as the selectedLease for editing
-    if (isSelected && leases) {
-      const newSelectedLeases = [...selectedLeases, id];
-      if (newSelectedLeases.length === 1) {
-        setSelectedLease(leases.find(lease => lease.id === id) || null);
-      } else {
+    if (isSelected) {
+      setSelectedLeases(prev => [...prev, id]);
+      
+      if (leases) {
+        const lease = leases.find(lease => lease.id === id);
+        if (lease) {
+          setSelectedLease(lease);
+          console.log("Setting selected lease:", lease);
+        }
+      }
+    } else {
+      setSelectedLeases(prev => prev.filter(leaseId => leaseId !== id));
+      
+      if (selectedLease && selectedLease.id === id) {
         setSelectedLease(null);
       }
-    } else if (selectedLeases.length === 1 && !isSelected && selectedLeases[0] === id) {
-      setSelectedLease(null);
+      
+      const remainingLeases = selectedLeases.filter(leaseId => leaseId !== id);
+      if (remainingLeases.length === 1 && leases) {
+        const lease = leases.find(lease => lease.id === remainingLeases[0]);
+        if (lease) {
+          setSelectedLease(lease);
+        }
+      }
     }
   };
 
   const handleLeaseSelect = (lease: Lease) => {
-    // For opening the details modal
     setSelectedLease(lease);
   };
 

@@ -25,6 +25,10 @@ export function LeaseActions({
 }: LeaseActionsProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+  // For debugging
+  console.log("Selected lease:", selectedLease);
+  console.log("Selected count:", selectedCount);
+
   return (
     <div className="flex items-center gap-2">
       {selectedCount > 0 && (
@@ -47,7 +51,7 @@ export function LeaseActions({
       <Button
         variant="outline"
         onClick={() => setIsEditDialogOpen(true)}
-        disabled={selectedCount !== 1 || !selectedLease}
+        disabled={selectedCount !== 1}
       >
         <PencilLine className="mr-2 h-4 w-4" />
         Edit Lease
