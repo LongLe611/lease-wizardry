@@ -14,15 +14,36 @@ interface PaymentTermsProps {
     cpiIndexRate: number | null;
     baseYear: number | null;
   }) => void;
+  initialPaymentInterval?: string;
+  initialPaymentType?: string;
+  initialBasePayment?: number;
+  initialCpiIndexRate?: number | null;
+  initialBaseYear?: number | null;
 }
 
-export function PaymentTermsSection({ onPaymentTermsChange }: PaymentTermsProps) {
-  const [isVariable, setIsVariable] = useState(false);
-  const [paymentInterval, setPaymentInterval] = useState<string>('monthly');
-  const [basePayment, setBasePayment] = useState<number>(0);
-  const [cpiIndexRate, setCpiIndexRate] = useState<number | null>(null);
-  const [baseYear, setBaseYear] = useState<number | null>(null);
+export function PaymentTermsSection({ 
+  onPaymentTermsChange,
+  initialPaymentInterval = 'monthly',
+  initialPaymentType = 'fixed',
+  initialBasePayment = 0,
+  initialCpiIndexRate = null,
+  initialBaseYear = null
+}: PaymentTermsProps) {
+  const [isVariable, setIsVariable] = useState(initialPaymentType === 'variable');
+  const [paymentInterval, setPaymentInterval] = useState<string>(initialPaymentInterval);
+  const [basePayment, setBasePayment] = useState<number>(initialBasePayment);
+  const [cpiIndexRate, setCpiIndexRate] = useState<number | null>(initialCpiIndexRate);
+  const [baseYear, setBaseYear] = useState<number | null>(initialBaseYear);
   const [calculatedPayment, setCalculatedPayment] = useState<number | null>(null);
+
+  // Initialize with initial values
+  useEffect(() => {
+    setIsVariable(initialPaymentType === 'variable');
+    setPaymentInterval(initialPaymentInterval);
+    setBasePayment(initialBasePayment);
+    setCpiIndexRate(initialCpiIndexRate);
+    setBaseYear(initialBaseYear);
+  }, [initialPaymentType, initialPaymentInterval, initialBasePayment, initialCpiIndexRate, initialBaseYear]);
 
   useEffect(() => {
     if (isVariable && basePayment && cpiIndexRate && baseYear) {

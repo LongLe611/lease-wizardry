@@ -17,6 +17,10 @@ export type Lease = {
   interest_rate: number;
   discount_rate: number;
   lease_term: number;
+  payment_type?: "fixed" | "variable";
+  cpi_index_rate?: number | null;
+  base_year?: number | null;
+  rate_table_id?: string | null;
 };
 
 export type LeaseScheduleRow = {

@@ -70,6 +70,23 @@ export function LeaseSummary() {
         ? [...prev, id]
         : prev.filter(leaseId => leaseId !== id)
     );
+    
+    // If only one lease is selected, set it as the selectedLease for editing
+    if (isSelected && leases) {
+      const newSelectedLeases = [...selectedLeases, id];
+      if (newSelectedLeases.length === 1) {
+        setSelectedLease(leases.find(lease => lease.id === id) || null);
+      } else {
+        setSelectedLease(null);
+      }
+    } else if (selectedLeases.length === 1 && !isSelected && selectedLeases[0] === id) {
+      setSelectedLease(null);
+    }
+  };
+
+  const handleLeaseSelect = (lease: Lease) => {
+    // For opening the details modal
+    setSelectedLease(lease);
   };
 
   const handleDelete = async () => {
@@ -92,6 +109,7 @@ export function LeaseSummary() {
       });
 
       setSelectedLeases([]);
+      setSelectedLease(null);
       
       toast({
         title: "Success",
@@ -113,6 +131,10 @@ export function LeaseSummary() {
     }
   };
 
+  const handleLeaseUpdated = () => {
+    queryClient.invalidateQueries({ queryKey: ['leases'] });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -122,8 +144,10 @@ export function LeaseSummary() {
         />
         <LeaseActions
           selectedCount={selectedLeases.length}
+          selectedLease={selectedLease}
           onExport={handleExport}
           onDelete={() => setShowDeleteDialog(true)}
+          onLeaseUpdated={handleLeaseUpdated}
           isDeleting={isDeleting}
         />
       </div>
@@ -131,7 +155,7 @@ export function LeaseSummary() {
       <LeaseGrid 
         leases={filteredLeases || []}
         isLoading={isLoading}
-        onLeaseSelect={setSelectedLease}
+        onLeaseSelect={handleLeaseSelect}
         selectedLeases={selectedLeases}
         onSelectionChange={handleSelectionChange}
       />

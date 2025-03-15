@@ -11,6 +11,8 @@ interface ContractDetailsProps {
   onFieldChange?: (field: string, value: string) => void;
   contractNumber?: string;
   lessorEntity?: string;
+  initialCommencementDate?: Date | null;
+  initialExpirationDate?: Date | null;
 }
 
 export function ContractDetailsSection({ 
@@ -18,13 +20,26 @@ export function ContractDetailsSection({
   onDateChange, 
   onFieldChange,
   contractNumber = '',
-  lessorEntity = ''
+  lessorEntity = '',
+  initialCommencementDate = null,
+  initialExpirationDate = null
 }: ContractDetailsProps) {
-  const [commencementDate, setCommencementDate] = useState<Date | null>(null);
-  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const [commencementDate, setCommencementDate] = useState<Date | null>(initialCommencementDate);
+  const [expirationDate, setExpirationDate] = useState<Date | null>(initialExpirationDate);
   const [leaseTerm, setLeaseTerm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+
+  // Initialize with initial values if provided
+  useEffect(() => {
+    if (initialCommencementDate) {
+      setCommencementDate(initialCommencementDate);
+    }
+    
+    if (initialExpirationDate) {
+      setExpirationDate(initialExpirationDate);
+    }
+  }, [initialCommencementDate, initialExpirationDate]);
 
   useEffect(() => {
     if (commencementDate && expirationDate) {
@@ -64,6 +79,11 @@ export function ContractDetailsSection({
     }
   };
 
+  const formatDateForInput = (date: Date | null) => {
+    if (!date) return '';
+    return date.toISOString().split('T')[0];
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -98,6 +118,7 @@ export function ContractDetailsSection({
               id="commencement"
               type="date"
               className="w-full"
+              value={formatDateForInput(commencementDate)}
               onChange={(e) => handleDateChange('commencement', e.target.value)}
               required
             />
@@ -112,6 +133,7 @@ export function ContractDetailsSection({
               id="expiration"
               type="date"
               className="w-full"
+              value={formatDateForInput(expirationDate)}
               onChange={(e) => handleDateChange('expiration', e.target.value)}
               required
             />
