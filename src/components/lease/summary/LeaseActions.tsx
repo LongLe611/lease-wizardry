@@ -54,14 +54,12 @@ export function LeaseActions({
       </Button>
       <NewLeaseDialog />
       
-      {selectedLease && (
-        <EditLeaseDialog 
-          lease={selectedLease}
-          isOpen={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          onLeaseUpdated={onLeaseUpdated}
-        />
-      )}
+      <EditLeaseDialog 
+        lease={selectedLease}
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onLeaseUpdated={onLeaseUpdated}
+      />
     </div>
   );
 }

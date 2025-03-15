@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +64,7 @@ export function EditLeaseDialog({
       });
       setIsLowValue(lease.is_low_value || false);
     }
-  }, [lease]);
+  }, [lease, isOpen]);
 
   const handleDateChange = (dates: { commencementDate: Date | null; expirationDate: Date | null; leaseTerm: number | null }) => {
     setFormData(prev => ({
@@ -163,13 +164,14 @@ export function EditLeaseDialog({
     }
   };
 
-  if (!lease) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Existing Lease</DialogTitle>
+          <DialogDescription>
+            Make changes to your lease details below.
+          </DialogDescription>
         </DialogHeader>
         <NewLeaseFormContent 
           isLowValue={isLowValue}
