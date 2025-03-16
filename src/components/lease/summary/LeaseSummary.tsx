@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LeaseGrid } from "./LeaseGrid";
@@ -35,6 +35,18 @@ export function LeaseSummary() {
     }
   });
 
+  useEffect(() => {
+    if (selectedLeases.length === 1 && leases) {
+      const lease = leases.find(lease => lease.id === selectedLeases[0]);
+      if (lease) {
+        console.log("Setting selected lease in LeaseSummary:", lease);
+        setSelectedLease(lease);
+      }
+    } else if (selectedLeases.length === 0) {
+      setSelectedLease(null);
+    }
+  }, [selectedLeases, leases]);
+
   const filteredLeases = leases?.filter(lease => {
     if (filters.searchText) {
       const searchLower = filters.searchText.toLowerCase();
@@ -64,34 +76,17 @@ export function LeaseSummary() {
   };
 
   const handleSelectionChange = (id: string, isSelected: boolean) => {
+    console.log(`Selection change for lease ${id}: ${isSelected}`);
+    
     if (isSelected) {
       setSelectedLeases(prev => [...prev, id]);
-      
-      if (leases) {
-        const lease = leases.find(lease => lease.id === id);
-        if (lease) {
-          setSelectedLease(lease);
-          console.log("Setting selected lease:", lease);
-        }
-      }
     } else {
       setSelectedLeases(prev => prev.filter(leaseId => leaseId !== id));
-      
-      if (selectedLease && selectedLease.id === id) {
-        setSelectedLease(null);
-      }
-      
-      const remainingLeases = selectedLeases.filter(leaseId => leaseId !== id);
-      if (remainingLeases.length === 1 && leases) {
-        const lease = leases.find(lease => lease.id === remainingLeases[0]);
-        if (lease) {
-          setSelectedLease(lease);
-        }
-      }
     }
   };
 
   const handleLeaseSelect = (lease: Lease) => {
+    console.log("Lease selected in grid:", lease);
     setSelectedLease(lease);
   };
 

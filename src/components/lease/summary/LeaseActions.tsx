@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FileDown, Trash2, PencilLine } from "lucide-react";
 import { NewLeaseDialog } from "../new-lease/NewLeaseDialog";
 import { EditLeaseDialog } from "../edit-lease/EditLeaseDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Lease } from "./types";
 
 interface LeaseActionsProps {
@@ -24,10 +24,21 @@ export function LeaseActions({
   isDeleting
 }: LeaseActionsProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentSelectedLease, setCurrentSelectedLease] = useState<Lease | null>(null);
 
-  // For debugging
-  console.log("Selected lease:", selectedLease);
-  console.log("Selected count:", selectedCount);
+  // Update the current selected lease when the selectedLease prop changes
+  useEffect(() => {
+    console.log("Selected lease in LeaseActions updated:", selectedLease);
+    setCurrentSelectedLease(selectedLease);
+  }, [selectedLease]);
+
+  const handleEditClick = () => {
+    console.log("Edit button clicked, selected lease:", selectedLease);
+    if (selectedLease) {
+      setCurrentSelectedLease(selectedLease);
+      setIsEditDialogOpen(true);
+    }
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -50,8 +61,8 @@ export function LeaseActions({
       </Button>
       <Button
         variant="outline"
-        onClick={() => setIsEditDialogOpen(true)}
-        disabled={selectedCount !== 1}
+        onClick={handleEditClick}
+        disabled={selectedCount !== 1 || !selectedLease}
       >
         <PencilLine className="mr-2 h-4 w-4" />
         Edit Lease
@@ -59,7 +70,7 @@ export function LeaseActions({
       <NewLeaseDialog />
       
       <EditLeaseDialog 
-        lease={selectedLease}
+        lease={currentSelectedLease}
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onLeaseUpdated={onLeaseUpdated}

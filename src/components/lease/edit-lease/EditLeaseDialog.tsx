@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -48,24 +47,33 @@ export function EditLeaseDialog({
   useEffect(() => {
     if (lease && isOpen) {
       console.log("Loading lease data for editing:", lease);
-      setFormData({
-        contractNumber: lease.contract_number || '',
-        lessorEntity: lease.lessor_entity,
-        commencementDate: lease.commencement_date ? new Date(lease.commencement_date) : null,
-        expirationDate: lease.expiration_date ? new Date(lease.expiration_date) : null,
-        leaseTerm: lease.lease_term,
-        paymentInterval: lease.payment_interval,
-        paymentType: lease.payment_type || 'fixed',
-        basePayment: lease.base_payment,
-        cpiIndexRate: lease.cpi_index_rate,
-        baseYear: lease.base_year,
-        discountRate: lease.discount_rate,
-        rateTableId: lease.rate_table_id,
-        leaseTermBucket: null,
-      });
-      setIsLowValue(lease.is_low_value || false);
+      try {
+        setFormData({
+          contractNumber: lease.contract_number || '',
+          lessorEntity: lease.lessor_entity,
+          commencementDate: lease.commencement_date ? new Date(lease.commencement_date) : null,
+          expirationDate: lease.expiration_date ? new Date(lease.expiration_date) : null,
+          leaseTerm: lease.lease_term,
+          paymentInterval: lease.payment_interval,
+          paymentType: lease.payment_type || 'fixed',
+          basePayment: lease.base_payment,
+          cpiIndexRate: lease.cpi_index_rate,
+          baseYear: lease.base_year,
+          discountRate: lease.discount_rate,
+          rateTableId: lease.rate_table_id,
+          leaseTermBucket: null,
+        });
+        setIsLowValue(lease.is_low_value || false);
+      } catch (error) {
+        console.error("Error setting form data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load lease data",
+          variant: "destructive",
+        });
+      }
     }
-  }, [lease, isOpen]);
+  }, [lease, isOpen, toast]);
 
   const handleDateChange = (dates: { commencementDate: Date | null; expirationDate: Date | null; leaseTerm: number | null }) => {
     setFormData(prev => ({

@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -10,11 +9,12 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { AlertOctagon, CheckSquare, XOctagon } from "lucide-react";
+import { Lease } from "./types";
 
 interface LeaseGridProps {
-  leases: any[];
+  leases: Lease[];
   isLoading: boolean;
-  onLeaseSelect: (lease: any) => void;
+  onLeaseSelect: (lease: Lease) => void;
   selectedLeases: string[];
   onSelectionChange: (id: string, isSelected: boolean) => void;
 }
@@ -50,6 +50,20 @@ export function LeaseGrid({
     return lease.created_at !== lease.updated_at;
   };
 
+  const handleCheckboxChange = (lease: Lease, checked: boolean) => {
+    console.log(`Checkbox changed for lease ${lease.id}: ${checked}`);
+    onSelectionChange(lease.id, checked);
+    
+    if (checked) {
+      onLeaseSelect(lease);
+    }
+  };
+
+  const handleRowClick = (lease: Lease) => {
+    console.log(`Row clicked for lease: ${lease.id}`);
+    onLeaseSelect(lease);
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -74,24 +88,26 @@ export function LeaseGrid({
           <TableRow
             key={lease.id}
             className={`${
+              selectedLeases.includes(lease.id) ? "bg-muted/50" : ""
+            } ${
               isModified(lease) ? "border-blue-500 border-2" : ""
             }`}
           >
             <TableCell>
               <Checkbox
                 checked={selectedLeases.includes(lease.id)}
-                onCheckedChange={(checked) => onSelectionChange(lease.id, checked === true)}
+                onCheckedChange={(checked) => handleCheckboxChange(lease, checked === true)}
                 onClick={(e) => e.stopPropagation()}
               />
             </TableCell>
-            <TableCell>{getStatusIndicator(lease)}</TableCell>
-            <TableCell onClick={() => onLeaseSelect(lease)}>{lease.contract_number}</TableCell>
-            <TableCell onClick={() => onLeaseSelect(lease)}>{lease.lessor_entity}</TableCell>
-            <TableCell onClick={() => onLeaseSelect(lease)}>Property</TableCell>
-            <TableCell onClick={() => onLeaseSelect(lease)}>{format(new Date(lease.commencement_date), "PP")}</TableCell>
-            <TableCell onClick={() => onLeaseSelect(lease)}>{format(new Date(lease.expiration_date), "PP")}</TableCell>
-            <TableCell onClick={() => onLeaseSelect(lease)}>{getRemainingTerm(lease.expiration_date)} years</TableCell>
-            <TableCell onClick={() => onLeaseSelect(lease)} className="capitalize">{lease.payment_interval}</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)}>{getStatusIndicator(lease)}</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)}>{lease.contract_number}</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)}>{lease.lessor_entity}</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)}>Property</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)}>{format(new Date(lease.commencement_date), "PP")}</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)}>{format(new Date(lease.expiration_date), "PP")}</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)}>{getRemainingTerm(lease.expiration_date)} years</TableCell>
+            <TableCell onClick={() => handleRowClick(lease)} className="capitalize">{lease.payment_interval}</TableCell>
           </TableRow>
         ))}
       </TableBody>
