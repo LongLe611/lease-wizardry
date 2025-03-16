@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -41,34 +42,44 @@ export function EditLeaseDialog({
     leaseTermBucket: null as string | null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Reset error when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setLoadingError(null);
+    }
+  }, [isOpen]);
 
   // Initialize form data from lease when isOpen changes or lease changes
   useEffect(() => {
     if (lease && isOpen) {
       console.log("Loading lease data for editing:", lease);
       try {
+        setLoadingError(null);
         setFormData({
           contractNumber: lease.contract_number || '',
-          lessorEntity: lease.lessor_entity,
+          lessorEntity: lease.lessor_entity || '',
           commencementDate: lease.commencement_date ? new Date(lease.commencement_date) : null,
           expirationDate: lease.expiration_date ? new Date(lease.expiration_date) : null,
-          leaseTerm: lease.lease_term,
-          paymentInterval: lease.payment_interval,
+          leaseTerm: lease.lease_term || null,
+          paymentInterval: lease.payment_interval || '',
           paymentType: lease.payment_type || 'fixed',
-          basePayment: lease.base_payment,
-          cpiIndexRate: lease.cpi_index_rate,
-          baseYear: lease.base_year,
-          discountRate: lease.discount_rate,
-          rateTableId: lease.rate_table_id,
+          basePayment: lease.base_payment || 0,
+          cpiIndexRate: lease.cpi_index_rate || null,
+          baseYear: lease.base_year || null,
+          discountRate: lease.discount_rate || null,
+          rateTableId: lease.rate_table_id || null,
           leaseTermBucket: null,
         });
         setIsLowValue(lease.is_low_value || false);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error setting form data:", error);
+        setLoadingError(error.message || "Failed to load lease data");
         toast({
           title: "Error",
-          description: "Failed to load lease data",
+          description: "Failed to load lease data: " + (error.message || "Unknown error"),
           variant: "destructive",
         });
       }
@@ -191,7 +202,12 @@ export function EditLeaseDialog({
             Make changes to your lease details below.
           </DialogDescription>
         </DialogHeader>
-        {lease ? (
+        
+        {loadingError ? (
+          <div className="py-4 text-center text-destructive">
+            Error loading lease data: {loadingError}
+          </div>
+        ) : lease ? (
           <NewLeaseFormContent 
             isLowValue={isLowValue}
             formData={formData}

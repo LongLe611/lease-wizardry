@@ -50,18 +50,20 @@ export function LeaseGrid({
     return lease.created_at !== lease.updated_at;
   };
 
+  // Explicitly separate checkbox click from row click to prevent conflicts
   const handleCheckboxChange = (lease: Lease, checked: boolean) => {
     console.log(`Checkbox changed for lease ${lease.id}: ${checked}`);
     onSelectionChange(lease.id, checked);
-    
-    if (checked) {
-      onLeaseSelect(lease);
-    }
   };
 
+  // When a row is clicked, select the lease (separate from checkbox interaction)
   const handleRowClick = (lease: Lease) => {
     console.log(`Row clicked for lease: ${lease.id}`);
-    onLeaseSelect(lease);
+    
+    // If the lease is already selected, don't trigger a new selection event
+    if (!selectedLeases.includes(lease.id)) {
+      onLeaseSelect(lease);
+    }
   };
 
   if (isLoading) {
@@ -91,9 +93,9 @@ export function LeaseGrid({
               selectedLeases.includes(lease.id) ? "bg-muted/50" : ""
             } ${
               isModified(lease) ? "border-blue-500 border-2" : ""
-            }`}
+            } cursor-pointer`}
           >
-            <TableCell>
+            <TableCell onClick={(e) => e.stopPropagation()}>
               <Checkbox
                 checked={selectedLeases.includes(lease.id)}
                 onCheckedChange={(checked) => handleCheckboxChange(lease, checked === true)}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,7 @@ import { LeaseActions } from "./LeaseActions";
 import { Lease } from "./types";
 
 export function LeaseSummary() {
+  // State for selected leases and the single selected lease
   const [selectedLease, setSelectedLease] = useState<Lease | null>(null);
   const [selectedLeases, setSelectedLeases] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -35,6 +37,7 @@ export function LeaseSummary() {
     }
   });
 
+  // Update selectedLease whenever selectedLeases changes
   useEffect(() => {
     if (selectedLeases.length === 1 && leases) {
       const lease = leases.find(lease => lease.id === selectedLeases[0]);
@@ -42,11 +45,13 @@ export function LeaseSummary() {
         console.log("Setting selected lease in LeaseSummary:", lease);
         setSelectedLease(lease);
       }
-    } else if (selectedLeases.length === 0) {
+    } else if (selectedLeases.length === 0 || selectedLeases.length > 1) {
+      // Clear selected lease if no leases are selected or multiple are selected
       setSelectedLease(null);
     }
   }, [selectedLeases, leases]);
 
+  // Apply filters to leases
   const filteredLeases = leases?.filter(lease => {
     if (filters.searchText) {
       const searchLower = filters.searchText.toLowerCase();
@@ -75,21 +80,43 @@ export function LeaseSummary() {
     });
   };
 
+  // Handle selection change from the grid
   const handleSelectionChange = (id: string, isSelected: boolean) => {
     console.log(`Selection change for lease ${id}: ${isSelected}`);
     
     if (isSelected) {
-      setSelectedLeases(prev => [...prev, id]);
+      // Single selection mode - replace any existing selection
+      setSelectedLeases([id]);
+      
+      // Find and set the selected lease object
+      if (leases) {
+        const selectedLeaseObject = leases.find(lease => lease.id === id);
+        if (selectedLeaseObject) {
+          console.log("Found selected lease:", selectedLeaseObject);
+          setSelectedLease(selectedLeaseObject);
+        }
+      }
     } else {
+      // Remove from selection
       setSelectedLeases(prev => prev.filter(leaseId => leaseId !== id));
+      
+      // If this was the selected lease, clear it
+      if (selectedLease && selectedLease.id === id) {
+        setSelectedLease(null);
+      }
     }
   };
 
+  // Handle lease selection from the grid (e.g., row click)
   const handleLeaseSelect = (lease: Lease) => {
     console.log("Lease selected in grid:", lease);
+    
+    // Set as the only selected lease
+    setSelectedLeases([lease.id]);
     setSelectedLease(lease);
   };
 
+  // Handle lease deletion
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
@@ -132,6 +159,7 @@ export function LeaseSummary() {
     }
   };
 
+  // Callback when a lease is updated
   const handleLeaseUpdated = () => {
     queryClient.invalidateQueries({ queryKey: ['leases'] });
   };

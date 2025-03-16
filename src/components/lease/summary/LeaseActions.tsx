@@ -24,19 +24,29 @@ export function LeaseActions({
   isDeleting
 }: LeaseActionsProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  // Store the selected lease in a local state to prevent losing it during re-renders
   const [currentSelectedLease, setCurrentSelectedLease] = useState<Lease | null>(null);
 
   // Update the current selected lease when the selectedLease prop changes
   useEffect(() => {
     console.log("Selected lease in LeaseActions updated:", selectedLease);
-    setCurrentSelectedLease(selectedLease);
+    if (selectedLease) {
+      setCurrentSelectedLease(selectedLease);
+    }
   }, [selectedLease]);
 
   const handleEditClick = () => {
-    console.log("Edit button clicked, selected lease:", selectedLease);
-    if (selectedLease) {
-      setCurrentSelectedLease(selectedLease);
+    console.log("Edit button clicked, selected lease:", selectedLease || currentSelectedLease);
+    
+    // Use the most recent lease data available (either from props or local state)
+    const leaseToEdit = selectedLease || currentSelectedLease;
+    
+    if (leaseToEdit) {
+      // Make sure we have the latest selected lease data
+      setCurrentSelectedLease(leaseToEdit);
       setIsEditDialogOpen(true);
+    } else {
+      console.error("No lease available for editing");
     }
   };
 
@@ -62,13 +72,14 @@ export function LeaseActions({
       <Button
         variant="outline"
         onClick={handleEditClick}
-        disabled={selectedCount !== 1 || !selectedLease}
+        disabled={selectedCount !== 1}
       >
         <PencilLine className="mr-2 h-4 w-4" />
         Edit Lease
       </Button>
       <NewLeaseDialog />
       
+      {/* Always render the EditLeaseDialog to maintain consistent state */}
       <EditLeaseDialog 
         lease={currentSelectedLease}
         isOpen={isEditDialogOpen}
