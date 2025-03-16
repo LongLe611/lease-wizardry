@@ -40,6 +40,7 @@ export function EditLeaseDialog({
     discountRate: null as number | null,
     rateTableId: null as string | null,
     leaseTermBucket: null as string | null,
+    assetCategory: null as string | null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -58,11 +59,23 @@ export function EditLeaseDialog({
       console.log("Loading lease data for editing:", lease);
       try {
         setLoadingError(null);
+        
+        // Extract asset category from asset_type if available
+        let assetCategory = null;
+        if (lease.asset_type) {
+          assetCategory = lease.asset_type;
+        }
+        
+        // Make sure dates are properly converted
+        const commencementDate = lease.commencement_date ? new Date(lease.commencement_date) : null;
+        const expirationDate = lease.expiration_date ? new Date(lease.expiration_date) : null;
+        
+        // Set all form fields with proper type conversion
         setFormData({
           contractNumber: lease.contract_number || '',
           lessorEntity: lease.lessor_entity || '',
-          commencementDate: lease.commencement_date ? new Date(lease.commencement_date) : null,
-          expirationDate: lease.expiration_date ? new Date(lease.expiration_date) : null,
+          commencementDate: commencementDate,
+          expirationDate: expirationDate,
           leaseTerm: lease.lease_term || null,
           paymentInterval: lease.payment_interval || '',
           paymentType: lease.payment_type || 'fixed',
@@ -72,8 +85,18 @@ export function EditLeaseDialog({
           discountRate: lease.discount_rate || null,
           rateTableId: lease.rate_table_id || null,
           leaseTermBucket: null,
+          assetCategory: assetCategory,
         });
-        setIsLowValue(lease.is_low_value || false);
+        
+        // Set is_low_value separately
+        setIsLowValue(!!lease.is_low_value);
+        
+        console.log("Form data initialized:", {
+          basePayment: lease.base_payment,
+          paymentInterval: lease.payment_interval,
+          assetType: lease.asset_type,
+          discountRate: lease.discount_rate
+        });
       } catch (error: any) {
         console.error("Error setting form data:", error);
         setLoadingError(error.message || "Failed to load lease data");
@@ -127,6 +150,13 @@ export function EditLeaseDialog({
     }));
   };
 
+  const handleAssetCategoryChange = (category: string) => {
+    setFormData(prev => ({
+      ...prev,
+      assetCategory: category
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!lease) {
       toast({
@@ -142,7 +172,7 @@ export function EditLeaseDialog({
       
       // Validate required fields
       if (!formData.commencementDate || !formData.expirationDate || !formData.discountRate || 
-          !formData.paymentInterval || !formData.paymentType || !formData.basePayment ||
+          !formData.paymentInterval || !formData.paymentType || 
           !formData.contractNumber || !formData.lessorEntity) {
         throw new Error("Please fill in all required fields");
       }
@@ -162,6 +192,7 @@ export function EditLeaseDialog({
         discount_rate: formData.discountRate,
         is_low_value: isLowValue,
         rate_table_id: formData.rateTableId,
+        asset_type: formData.assetCategory,
         updated_at: new Date().toISOString()
       };
 
@@ -217,9 +248,10 @@ export function EditLeaseDialog({
             onDiscountRateChange={handleDiscountRateChange}
             onRateTableChange={handleRateTableChange}
             onContractFieldChange={handleContractFieldChange}
-            onSubmit={handleSubmit}
+            onAssetCategoryChange={handleAssetCategoryChange}
             submitLabel="Apply Changes"
             isSubmitting={isSubmitting}
+            onSubmit={handleSubmit}
           />
         ) : (
           <div className="py-4 text-center text-muted-foreground">

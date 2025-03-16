@@ -43,6 +43,12 @@ export function PaymentTermsSection({
     setBasePayment(initialBasePayment);
     setCpiIndexRate(initialCpiIndexRate);
     setBaseYear(initialBaseYear);
+    
+    console.log("PaymentTermsSection initial values:", {
+      interval: initialPaymentInterval,
+      type: initialPaymentType,
+      basePayment: initialBasePayment
+    });
   }, [initialPaymentType, initialPaymentInterval, initialBasePayment, initialCpiIndexRate, initialBaseYear]);
 
   useEffect(() => {
@@ -78,7 +84,7 @@ export function PaymentTermsSection({
       <div className="space-y-2">
         <Label htmlFor="payment-interval">Payment Interval</Label>
         <Select value={paymentInterval} onValueChange={setPaymentInterval}>
-          <SelectTrigger>
+          <SelectTrigger id="payment-interval">
             <SelectValue placeholder="Select interval" />
           </SelectTrigger>
           <SelectContent>
@@ -95,7 +101,7 @@ export function PaymentTermsSection({
           id="base-payment"
           type="number"
           step="0.01"
-          value={basePayment || ''}
+          value={basePayment !== null ? basePayment : ''}
           onChange={(e) => setBasePayment(Number(e.target.value))}
           className="w-full"
           required

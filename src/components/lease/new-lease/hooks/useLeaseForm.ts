@@ -17,6 +17,7 @@ export type LeaseFormData = {
   discountRate: number | null;
   rateTableId: string | null;
   leaseTermBucket: string | null;
+  assetCategory: string | null;
 };
 
 export function useLeaseForm(onSuccess?: () => void) {
@@ -35,6 +36,7 @@ export function useLeaseForm(onSuccess?: () => void) {
     discountRate: null,
     rateTableId: null,
     leaseTermBucket: null,
+    assetCategory: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -80,6 +82,13 @@ export function useLeaseForm(onSuccess?: () => void) {
     }));
   };
 
+  const handleAssetCategoryChange = (category: string) => {
+    setFormData(prev => ({
+      ...prev,
+      assetCategory: category
+    }));
+  };
+
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
@@ -109,7 +118,8 @@ export function useLeaseForm(onSuccess?: () => void) {
         discount_rate: formData.discountRate,
         is_low_value: isLowValue,
         user_id: userData.user.id,
-        rate_table_id: formData.rateTableId
+        rate_table_id: formData.rateTableId,
+        asset_type: formData.assetCategory
       };
 
       const { error: insertError } = await supabase
@@ -150,6 +160,7 @@ export function useLeaseForm(onSuccess?: () => void) {
     handleDiscountRateChange,
     handleRateTableChange,
     handleContractFieldChange,
+    handleAssetCategoryChange,
     handleSubmit,
     isSubmitting
   };

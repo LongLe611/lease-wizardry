@@ -21,6 +21,7 @@ interface NewLeaseFormContentProps {
   onDiscountRateChange: (rate: number) => void;
   onRateTableChange: (tableId: string) => void;
   onContractFieldChange: (field: string, value: string) => void;
+  onAssetCategoryChange?: (category: string) => void;
   onSubmit: () => void;
   submitLabel?: string;
   isSubmitting?: boolean;
@@ -35,6 +36,7 @@ export function NewLeaseFormContent({
   onDiscountRateChange,
   onRateTableChange,
   onContractFieldChange,
+  onAssetCategoryChange,
   onSubmit,
   submitLabel = "Add Lease",
   isSubmitting = false
@@ -70,7 +72,9 @@ export function NewLeaseFormContent({
         <h3 className="text-lg font-medium">Asset Classification</h3>
         <AssetClassificationSection 
           onLowValueChange={onLowValueChange}
+          onAssetCategoryChange={onAssetCategoryChange}
           initialIsLowValue={isLowValue}
+          initialAssetCategory={formData.assetCategory}
         />
       </div>
 

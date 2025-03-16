@@ -7,24 +7,40 @@ import { useState, useEffect } from "react";
 
 interface AssetClassificationProps {
   onLowValueChange: (value: boolean) => void;
+  onAssetCategoryChange?: (category: string) => void;
   initialIsLowValue?: boolean;
+  initialAssetCategory?: string | null;
 }
 
 export function AssetClassificationSection({ 
   onLowValueChange,
-  initialIsLowValue = false 
+  onAssetCategoryChange,
+  initialIsLowValue = false,
+  initialAssetCategory = null
 }: AssetClassificationProps) {
   const [isLowValue, setIsLowValue] = useState(initialIsLowValue);
-  const [assetCategory, setAssetCategory] = useState<string | null>(null);
+  const [assetCategory, setAssetCategory] = useState<string | null>(initialAssetCategory || null);
 
-  // Initialize with initial value
+  // Initialize with initial values
   useEffect(() => {
     setIsLowValue(initialIsLowValue);
   }, [initialIsLowValue]);
+  
+  // Initialize asset category with initial value
+  useEffect(() => {
+    setAssetCategory(initialAssetCategory || null);
+  }, [initialAssetCategory]);
 
   const handleLowValueChange = (checked: boolean) => {
     setIsLowValue(checked);
     onLowValueChange(checked);
+  };
+  
+  const handleAssetCategoryChange = (value: string) => {
+    setAssetCategory(value);
+    if (onAssetCategoryChange) {
+      onAssetCategoryChange(value);
+    }
   };
 
   return (
@@ -52,7 +68,10 @@ export function AssetClassificationSection({
 
       <div className="space-y-2">
         <Label htmlFor="asset-category">Right-of-use Asset Category</Label>
-        <Select value={assetCategory || ''} onValueChange={setAssetCategory}>
+        <Select 
+          value={assetCategory || ''} 
+          onValueChange={handleAssetCategoryChange}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
