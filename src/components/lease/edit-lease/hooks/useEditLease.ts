@@ -3,23 +3,8 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Lease } from "../../summary/types";
-
-type EditLeaseFormData = {
-  contractNumber: string;
-  lessorEntity: string;
-  commencementDate: Date | null;
-  expirationDate: Date | null;
-  leaseTerm: number | null;
-  paymentInterval: string;
-  paymentType: string;
-  basePayment: number;
-  cpiIndexRate: number | null;
-  baseYear: number | null;
-  discountRate: number | null;
-  rateTableId: string | null;
-  leaseTermBucket: string | null;
-  assetCategory: string | null;
-};
+import { EditLeaseFormData } from "../types";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useEditLease(lease: Lease | null, onSuccess: () => void) {
   const [isLowValue, setIsLowValue] = useState(false);
@@ -42,6 +27,7 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Initialize form data from lease
   useEffect(() => {
@@ -195,6 +181,9 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
 
       if (updateError) throw updateError;
 
+      // Invalidate queries to refresh data across all components
+      await queryClient.invalidateQueries({ queryKey: ['leases'] });
+      
       toast({
         title: "Success",
         description: "Lease has been successfully updated",

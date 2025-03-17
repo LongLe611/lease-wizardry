@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export type LeaseFormData = {
   contractNumber: string;
@@ -40,6 +41,7 @@ export function useLeaseForm(onSuccess?: () => void) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleDateChange = (dates: { commencementDate: Date | null; expirationDate: Date | null; leaseTerm: number | null }) => {
     setFormData(prev => ({
@@ -132,6 +134,9 @@ export function useLeaseForm(onSuccess?: () => void) {
         title: "Success",
         description: "Lease has been successfully created",
       });
+      
+      // Invalidate the leases query to refresh data across all components
+      await queryClient.invalidateQueries({ queryKey: ['leases'] });
       
       if (onSuccess) {
         onSuccess();

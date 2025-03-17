@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, addMonths, subDays } from "date-fns";
@@ -15,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Lease, LeaseScheduleRow, MonthlyScheduleRow } from "../summary/types";
 
 const formatCurrency = (value: number) => {
@@ -35,7 +35,7 @@ const formatNumber = (value: number, decimals = 2) => {
 export function LeaseScheduleDetails() {
   const [selectedLeaseId, setSelectedLeaseId] = useState<string>("");
 
-  const { data: leases } = useQuery({
+  const { data: leases, isLoading } = useQuery({
     queryKey: ['leases'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -48,11 +48,16 @@ export function LeaseScheduleDetails() {
     }
   });
 
+  useEffect(() => {
+    if (leases?.length && !selectedLeaseId) {
+      setSelectedLeaseId(leases[0].id);
+    }
+  }, [leases, selectedLeaseId]);
+
   const selectedLease = useMemo(() => {
     return leases?.find(lease => lease.id === selectedLeaseId);
   }, [leases, selectedLeaseId]);
 
-  // Calculate intervals based on payment frequency
   const getIntervalMonths = (paymentInterval: string): number => {
     switch (paymentInterval.toLowerCase()) {
       case 'quarterly':
@@ -65,7 +70,6 @@ export function LeaseScheduleDetails() {
     }
   };
 
-  // Calculate discount factors and present values
   const calculateSchedule = (lease: Lease): LeaseScheduleRow[] => {
     if (!lease) return [];
 
@@ -82,7 +86,6 @@ export function LeaseScheduleDetails() {
       
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + intervalMonths);
-      // Subtract one day to get end of month
       endDate.setDate(endDate.getDate() - 1);
 
       schedule.push({
@@ -98,7 +101,6 @@ export function LeaseScheduleDetails() {
     return schedule;
   };
 
-  // Calculate monthly amortization schedule
   const calculateMonthlySchedule = (lease: Lease): MonthlyScheduleRow[] => {
     if (!lease) return [];
 
@@ -113,7 +115,6 @@ export function LeaseScheduleDetails() {
     for (let i = 0; i < totalPeriods; i++) {
       const interestExpense = openingLiability * discountRatePerMonth;
       
-      // Calculate payment amount based on payment interval
       let payment = 0;
       const intervalMonths = getIntervalMonths(lease.payment_interval);
       if (i % intervalMonths === 0) {
@@ -149,6 +150,23 @@ export function LeaseScheduleDetails() {
   const monthlySchedule = useMemo(() => {
     return selectedLease ? calculateMonthlySchedule(selectedLease) : [];
   }, [selectedLease]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Contract Number</Label>
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

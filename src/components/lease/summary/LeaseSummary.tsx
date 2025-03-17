@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +24,7 @@ export function LeaseSummary() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: leases, isLoading } = useQuery({
+  const { data: leases, isLoading, refetch } = useQuery({
     queryKey: ['leases'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -160,8 +159,25 @@ export function LeaseSummary() {
   };
 
   // Callback when a lease is updated
-  const handleLeaseUpdated = () => {
-    queryClient.invalidateQueries({ queryKey: ['leases'] });
+  const handleLeaseUpdated = async () => {
+    console.log("Lease updated, refreshing data");
+    await refetch();
+    
+    // Clear selection if there was any
+    if (selectedLeases.length > 0) {
+      // Keep the selection but update the selected lease data
+      if (selectedLeases.length === 1) {
+        const updatedLease = (await refetch()).data?.find(lease => lease.id === selectedLeases[0]);
+        if (updatedLease) {
+          setSelectedLease(updatedLease);
+        }
+      }
+    }
+    
+    toast({
+      title: "Data Refreshed",
+      description: "Lease data has been updated successfully"
+    });
   };
 
   return (

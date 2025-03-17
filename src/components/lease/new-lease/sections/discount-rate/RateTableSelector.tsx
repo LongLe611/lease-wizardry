@@ -1,6 +1,7 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type RateTable = {
   id: string;
@@ -30,6 +31,15 @@ export function RateTableSelector({
       day: 'numeric' 
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="rate-table">Rate Table Version</Label>
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
