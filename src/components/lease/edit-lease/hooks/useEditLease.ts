@@ -90,6 +90,7 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       ...prev,
       ...dates
     }));
+    console.log("Date fields updated:", dates);
   };
 
   const handlePaymentTermsChange = (terms: {
@@ -103,6 +104,7 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       ...prev,
       ...terms
     }));
+    console.log("Payment terms updated:", terms);
   };
 
   const handleDiscountRateChange = (rate: number) => {
@@ -110,6 +112,7 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       ...prev,
       discountRate: rate
     }));
+    console.log("Discount rate updated:", rate);
   };
 
   const handleRateTableChange = (tableId: string) => {
@@ -117,6 +120,7 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       ...prev,
       rateTableId: tableId
     }));
+    console.log("Rate table updated:", tableId);
   };
 
   const handleContractFieldChange = (field: string, value: string) => {
@@ -124,6 +128,7 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       ...prev,
       [field]: value
     }));
+    console.log(`Contract field "${field}" updated:`, value);
   };
 
   const handleAssetCategoryChange = (category: string) => {
@@ -131,10 +136,14 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       ...prev,
       assetCategory: category
     }));
+    console.log("Asset category updated:", category);
   };
 
   const handleSubmit = async () => {
+    console.log("Edit lease submit handler triggered");
+    
     if (!lease) {
+      console.error("Submit called but no lease is selected");
       toast({
         title: "Error",
         description: "No lease selected for editing",
@@ -145,12 +154,24 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
     
     try {
       setIsSubmitting(true);
+      console.log("Starting lease update for lease ID:", lease.id);
       
       // Validate required fields
       if (!formData.commencementDate || !formData.expirationDate || !formData.discountRate || 
           !formData.paymentInterval || !formData.paymentType || 
           !formData.contractNumber || !formData.lessorEntity) {
-        throw new Error("Please fill in all required fields");
+        const missingFields = [];
+        if (!formData.commencementDate) missingFields.push("Commencement Date");
+        if (!formData.expirationDate) missingFields.push("Expiration Date");
+        if (!formData.discountRate) missingFields.push("Discount Rate");
+        if (!formData.paymentInterval) missingFields.push("Payment Interval");
+        if (!formData.paymentType) missingFields.push("Payment Type");
+        if (!formData.contractNumber) missingFields.push("Contract Number");
+        if (!formData.lessorEntity) missingFields.push("Lessor Entity");
+        
+        const errorMsg = `Please fill in all required fields: ${missingFields.join(", ")}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Format dates and prepare data according to the database schema
@@ -173,15 +194,23 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       };
 
       console.log("Updating lease with data:", leaseData);
+      console.log("Target lease ID:", lease.id);
 
-      const { error: updateError } = await supabase
+      const { data, error: updateError } = await supabase
         .from('leases')
         .update(leaseData)
-        .eq('id', lease.id);
+        .eq('id', lease.id)
+        .select();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Supabase update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('Lease updated successfully. Response:', data);
 
       // Invalidate queries to refresh data across all components
+      console.log('Invalidating leases query cache');
       await queryClient.invalidateQueries({ queryKey: ['leases'] });
       
       toast({

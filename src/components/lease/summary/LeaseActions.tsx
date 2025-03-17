@@ -50,6 +50,11 @@ export function LeaseActions({
     }
   };
 
+  const handleLeaseUpdated = () => {
+    console.log("Lease updated callback in LeaseActions triggered");
+    onLeaseUpdated();
+  };
+
   return (
     <div className="flex items-center gap-2">
       {selectedCount > 0 && (
@@ -84,7 +89,7 @@ export function LeaseActions({
         lease={currentSelectedLease}
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        onLeaseUpdated={onLeaseUpdated}
+        onLeaseUpdated={handleLeaseUpdated}
       />
     </div>
   );

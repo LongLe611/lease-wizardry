@@ -50,7 +50,9 @@ export function EditLeaseDialog({
   }, [isOpen, clearError]);
 
   const onSubmit = async () => {
+    console.log("Edit dialog submit button clicked");
     const success = await handleSubmit();
+    console.log("Edit submit result:", success);
     if (success) {
       onOpenChange(false);
     }
