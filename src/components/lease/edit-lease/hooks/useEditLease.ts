@@ -196,6 +196,7 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       console.log("Updating lease with data:", leaseData);
       console.log("Target lease ID:", lease.id);
 
+      // Perform the update with better error handling
       const { data, error: updateError } = await supabase
         .from('leases')
         .update(leaseData)
@@ -207,17 +208,29 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
         throw updateError;
       }
 
-      console.log('Lease updated successfully. Response:', data);
+      if (!data || data.length === 0) {
+        console.error('Update succeeded but no data was returned');
+        throw new Error('Update succeeded but no data was returned');
+      }
 
-      // Invalidate queries to refresh data across all components
+      console.log('Lease updated successfully. Response:', data);
+      console.log('Updated fields include:', {
+        basePayment: data[0].base_payment,
+        assetType: data[0].asset_type,
+        updatedAt: data[0].updated_at
+      });
+
+      // Force invalidate all queries to refresh data across all components
       console.log('Invalidating leases query cache');
       await queryClient.invalidateQueries({ queryKey: ['leases'] });
+      await queryClient.refetchQueries({ queryKey: ['leases'] });
       
       toast({
         title: "Success",
-        description: "Lease has been successfully updated",
+        description: `Lease has been successfully updated with payment amount: ${data[0].base_payment} and asset type: ${data[0].asset_type || 'None'}`,
       });
       
+      // Call the onSuccess callback to update parent components
       onSuccess();
       return true;
     } catch (error: any) {

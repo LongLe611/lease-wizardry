@@ -51,9 +51,14 @@ export function EditLeaseDialog({
 
   const onSubmit = async () => {
     console.log("Edit dialog submit button clicked");
+    console.log("Current form data before submission:", formData);
+    console.log("Editing lease with ID:", lease?.id);
+    
     const success = await handleSubmit();
     console.log("Edit submit result:", success);
+    
     if (success) {
+      // Only close the dialog if the update was actually successful
       onOpenChange(false);
     }
   };
