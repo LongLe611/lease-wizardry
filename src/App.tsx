@@ -18,7 +18,7 @@ const queryClient = new QueryClient({
       refetchOnReconnect: true,
       retry: 1,
       staleTime: 5 * 1000, // Data becomes stale after 5 seconds
-      cacheTime: 10 * 1000, // Remove from cache after 10 seconds
+      gcTime: 10 * 1000, // Remove from cache after 10 seconds (previously cacheTime)
     },
   },
 });
