@@ -6,12 +6,13 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Lease } from "../summary/types";
 import { NewLeaseFormContent } from "../new-lease/NewLeaseFormContent";
 import { useEditLease } from "./hooks/useEditLease";
 import { LeaseFormError } from "./components/LeaseFormError";
 import { NoLeaseSelected } from "./components/NoLeaseSelected";
+import { useToast } from "@/hooks/use-toast";
 
 interface EditLeaseDialogProps {
   lease: Lease | null;
@@ -26,6 +27,9 @@ export function EditLeaseDialog({
   onOpenChange,
   onLeaseUpdated
 }: EditLeaseDialogProps) {
+  const { toast } = useToast();
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  
   const {
     isLowValue,
     setIsLowValue,
@@ -42,24 +46,56 @@ export function EditLeaseDialog({
     clearError
   } = useEditLease(lease, onLeaseUpdated);
 
-  // Reset error when dialog opens/closes
+  // Reset error and submit state when dialog opens/closes
   useEffect(() => {
     if (!isOpen) {
       clearError();
+      setSubmitAttempted(false);
     }
   }, [isOpen, clearError]);
+
+  // Log lease data whenever it changes
+  useEffect(() => {
+    if (lease && isOpen) {
+      console.log("Current lease data in EditLeaseDialog:", lease);
+    }
+  }, [lease, isOpen]);
 
   const onSubmit = async () => {
     console.log("Edit dialog submit button clicked");
     console.log("Current form data before submission:", formData);
     console.log("Editing lease with ID:", lease?.id);
     
-    const success = await handleSubmit();
-    console.log("Edit submit result:", success);
+    if (!lease) {
+      console.error("No lease selected for editing");
+      toast({
+        title: "Error",
+        description: "No lease selected for editing",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    if (success) {
-      // Only close the dialog if the update was actually successful
-      onOpenChange(false);
+    setSubmitAttempted(true);
+    
+    try {
+      const success = await handleSubmit();
+      console.log("Edit submit result:", success);
+      
+      if (success) {
+        // Only close the dialog if the update was actually successful
+        onOpenChange(false);
+        
+        // Call parent callback to ensure UI is refreshed
+        onLeaseUpdated();
+      }
+    } catch (error: any) {
+      console.error("Error in submit handler:", error);
+      toast({
+        title: "Error",
+        description: `Failed to update lease: ${error.message || "Unknown error"}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -92,6 +128,12 @@ export function EditLeaseDialog({
           />
         ) : (
           <NoLeaseSelected />
+        )}
+        
+        {submitAttempted && isSubmitting && (
+          <div className="mt-4 p-2 bg-blue-50 text-blue-700 rounded">
+            Processing your changes... Please wait.
+          </div>
         )}
       </DialogContent>
     </Dialog>

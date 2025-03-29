@@ -139,6 +139,27 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
     console.log("Asset category updated:", category);
   };
 
+  // Function to fetch a single lease by ID as a fallback
+  const fetchLeaseById = async (leaseId: string) => {
+    console.log("Fetching single lease as fallback for ID:", leaseId);
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select('*')
+        .eq('id', leaseId)
+        .single();
+      
+      if (error) throw error;
+      if (!data) throw new Error("No lease data found for ID: " + leaseId);
+      
+      console.log("Fallback fetch successful:", data);
+      return data;
+    } catch (error: any) {
+      console.error("Error in fallback fetch:", error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async () => {
     console.log("Edit lease submit handler triggered");
     
@@ -196,38 +217,59 @@ export function useEditLease(lease: Lease | null, onSuccess: () => void) {
       console.log("Updating lease with data:", leaseData);
       console.log("Target lease ID:", lease.id);
 
-      // Perform the update with better error handling
+      // Improved Supabase update query with better error handling
+      let updatedData;
       const { data, error: updateError } = await supabase
         .from('leases')
         .update(leaseData)
         .eq('id', lease.id)
-        .select();
+        .select('*');  // Explicitly select all columns
 
       if (updateError) {
         console.error('Supabase update error:', updateError);
         throw updateError;
       }
 
+      // Check if data was returned from the update operation
       if (!data || data.length === 0) {
-        console.error('Update succeeded but no data was returned');
-        throw new Error('Update succeeded but no data was returned');
+        console.warn('Update succeeded but no data was returned from update operation');
+        
+        // Implement fallback fetch if the update doesn't return data
+        try {
+          console.log('Attempting fallback fetch to get updated lease data');
+          updatedData = await fetchLeaseById(lease.id);
+          console.log('Fallback fetch successful:', updatedData);
+        } catch (fallbackError: any) {
+          console.error('Fallback fetch failed:', fallbackError);
+          throw new Error(`Update succeeded but failed to retrieve updated data: ${fallbackError.message}`);
+        }
+      } else {
+        updatedData = data[0];
+        console.log('Update returned data successfully:', updatedData);
       }
 
-      console.log('Lease updated successfully. Response:', data);
+      // Ensure we have valid data to work with
+      if (!updatedData) {
+        throw new Error('Failed to retrieve updated lease data after successful update');
+      }
+
+      console.log('Lease updated successfully. Response:', updatedData);
       console.log('Updated fields include:', {
-        basePayment: data[0].base_payment,
-        assetType: data[0].asset_type,
-        updatedAt: data[0].updated_at
+        basePayment: updatedData.base_payment,
+        assetType: updatedData.asset_type,
+        updatedAt: updatedData.updated_at
       });
 
-      // Force invalidate all queries to refresh data across all components
-      console.log('Invalidating leases query cache');
+      // Force invalidate and refetch all lease-related queries
+      console.log('Invalidating and refetching leases query cache');
       await queryClient.invalidateQueries({ queryKey: ['leases'] });
-      await queryClient.refetchQueries({ queryKey: ['leases'] });
+      const refetchResult = await queryClient.refetchQueries({ queryKey: ['leases'] });
+      console.log('Refetch completed:', refetchResult);
       
+      // Show a more specific success message
       toast({
         title: "Success",
-        description: `Lease has been successfully updated with payment amount: ${data[0].base_payment} and asset type: ${data[0].asset_type || 'None'}`,
+        description: `Lease has been successfully updated with payment amount: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(updatedData.base_payment)} ${updatedData.asset_type ? `and asset type: ${updatedData.asset_type}` : ''}`,
       });
       
       // Call the onSuccess callback to update parent components
