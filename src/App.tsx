@@ -9,7 +9,19 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import LeaseManagement from "./pages/LeaseManagement";
 
-const queryClient = new QueryClient();
+// Configure a more aggressive QueryClient that avoids caching issues
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      retry: 1,
+      staleTime: 5 * 1000, // Data becomes stale after 5 seconds
+      cacheTime: 10 * 1000, // Remove from cache after 10 seconds
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

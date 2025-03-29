@@ -13,6 +13,7 @@ import { useEditLease } from "./hooks/useEditLease";
 import { LeaseFormError } from "./components/LeaseFormError";
 import { NoLeaseSelected } from "./components/NoLeaseSelected";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface EditLeaseDialogProps {
   lease: Lease | null;
@@ -29,6 +30,7 @@ export function EditLeaseDialog({
 }: EditLeaseDialogProps) {
   const { toast } = useToast();
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const queryClient = useQueryClient();
   
   const {
     isLowValue,
@@ -51,15 +53,24 @@ export function EditLeaseDialog({
     if (!isOpen) {
       clearError();
       setSubmitAttempted(false);
+    } else if (isOpen && lease) {
+      // Force refetch latest data when dialog opens
+      queryClient.refetchQueries({ queryKey: ['leases'] });
+      console.log("EditLeaseDialog opened with lease data:", {
+        id: lease.id,
+        basePayment: lease.base_payment,
+        assetType: lease.asset_type
+      });
     }
-  }, [isOpen, clearError]);
+  }, [isOpen, clearError, lease, queryClient]);
 
   // Log lease data whenever it changes
   useEffect(() => {
     if (lease && isOpen) {
       console.log("Current lease data in EditLeaseDialog:", lease);
+      console.log("Current form data in EditLeaseDialog:", formData);
     }
-  }, [lease, isOpen]);
+  }, [lease, isOpen, formData]);
 
   const onSubmit = async () => {
     console.log("Edit dialog submit button clicked");
@@ -79,10 +90,20 @@ export function EditLeaseDialog({
     setSubmitAttempted(true);
     
     try {
+      // Force invalidate cache before submitting to ensure we're working with fresh data
+      await queryClient.invalidateQueries({ queryKey: ['leases'] });
+      
       const success = await handleSubmit();
       console.log("Edit submit result:", success);
       
       if (success) {
+        // Explicitly reset the query client cache completely
+        await queryClient.resetQueries();
+        await queryClient.refetchQueries({ queryKey: ['leases'], type: 'all' });
+        
+        // Double check cache invalidation
+        console.log("Clearing all query cache after successful update");
+        
         // Only close the dialog if the update was actually successful
         onOpenChange(false);
         

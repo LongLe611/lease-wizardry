@@ -72,6 +72,7 @@ export function useLeaseSubmit(
     try {
       setIsSubmitting(true);
       console.log("Starting lease update for lease ID:", lease.id);
+      console.log("Form data being submitted:", formData);
       
       // Validate required fields
       const validationError = validateFormData(formData);
@@ -100,6 +101,7 @@ export function useLeaseSubmit(
 
       console.log("Updating lease with data:", leaseData);
       console.log("Target lease ID:", lease.id);
+      console.log("Base payment amount being updated to:", formData.basePayment);
 
       // Improved Supabase update query with better error handling
       let updatedData;
@@ -107,7 +109,7 @@ export function useLeaseSubmit(
         .from('leases')
         .update(leaseData)
         .eq('id', lease.id)
-        .select();  // Explicitly select all columns
+        .select('*');  // Explicitly select all columns
 
       if (updateError) {
         console.error('Supabase update error:', updateError);
@@ -144,11 +146,23 @@ export function useLeaseSubmit(
         updatedAt: updatedData.updated_at
       });
 
-      // Force invalidate and refetch all lease-related queries
-      console.log('Invalidating and refetching leases query cache');
-      await queryClient.invalidateQueries({ queryKey: ['leases'] });
-      const refetchResult = await queryClient.refetchQueries({ queryKey: ['leases'] });
-      console.log('Refetch completed:', refetchResult);
+      // Force invalidate and refetch ALL lease-related queries with stronger cache reset
+      console.log('Completely invalidating and forcing refetch of ALL lease-related query cache');
+      
+      // First, reset the entire query cache
+      await queryClient.resetQueries();
+      
+      // Specifically invalidate leases queries 
+      await queryClient.invalidateQueries({ queryKey: ['leases'], refetchType: 'all' });
+      
+      // Force refetch of all leases data
+      const refetchResult = await queryClient.refetchQueries({ 
+        queryKey: ['leases'], 
+        type: 'all', 
+        exact: false 
+      });
+      
+      console.log('Query cache reset and refetch completed:', refetchResult);
       
       // Show a more specific success message
       toast({
