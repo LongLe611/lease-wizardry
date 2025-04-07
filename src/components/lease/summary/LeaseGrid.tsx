@@ -51,11 +51,22 @@ export function LeaseGrid({
     return lease.created_at !== lease.updated_at;
   };
 
-  // Checkbox click handler - only changes selection state
-  const handleCheckboxChange = (lease: Lease, checked: boolean, event: React.MouseEvent) => {
-    console.log(`Checkbox changed for lease ${lease.id}: ${checked}`);
+  // Handle checkbox clicks - prevent propagation to avoid triggering row actions
+  const handleCheckboxClick = (event: React.MouseEvent) => {
+    // Stop propagation to prevent the lease selection handler from firing
     event.stopPropagation();
-    onSelectionChange(lease.id, checked);
+  };
+
+  // Handle checkbox cell clicks - prevent propagation to avoid triggering row actions
+  const handleCheckboxCellClick = (event: React.MouseEvent) => {
+    // Stop propagation to prevent the lease selection handler from firing
+    event.stopPropagation();
+  };
+
+  // Handle checkbox change - this is called when the checkbox state changes
+  const handleCheckboxChange = (leaseId: string, checked: boolean) => {
+    console.log(`Checkbox changed for lease ${leaseId}: ${checked}`);
+    onSelectionChange(leaseId, checked);
   };
 
   // Contract number click handler - shows lease details popup
@@ -94,13 +105,16 @@ export function LeaseGrid({
               isModified(lease) ? "border-blue-500 border-2" : ""
             }`}
           >
-            <TableCell className="p-0 pl-4">
+            <TableCell 
+              className="p-0 pl-4"
+              onClick={handleCheckboxCellClick} // Add click handler to the entire cell
+            >
               <Checkbox
                 checked={selectedLeases.includes(lease.id)}
                 onCheckedChange={(checked) => 
-                  onSelectionChange(lease.id, checked === true)
+                  handleCheckboxChange(lease.id, checked === true)
                 }
-                onClick={(event) => event.stopPropagation()}
+                onClick={handleCheckboxClick} // Add click handler to the checkbox itself
               />
             </TableCell>
             <TableCell>{getStatusIndicator(lease)}</TableCell>
