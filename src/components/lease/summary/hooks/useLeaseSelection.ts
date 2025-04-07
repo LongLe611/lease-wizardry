@@ -20,39 +20,27 @@ export function useLeaseSelection(leases: Lease[] | undefined) {
     }
   }, [selectedLeases, leases]);
 
-  // Handle selection change from the grid
+  // Handle selection change from the grid (ONLY updates checkbox state)
   const handleSelectionChange = (id: string, isSelected: boolean) => {
     console.log(`Selection change for lease ${id}: ${isSelected}`);
     
     if (isSelected) {
-      // Single selection mode - replace any existing selection
-      setSelectedLeases([id]);
-      
-      // Find and set the selected lease object
-      if (leases) {
-        const selectedLeaseObject = leases.find(lease => lease.id === id);
-        if (selectedLeaseObject) {
-          console.log("Found selected lease:", selectedLeaseObject);
-          setSelectedLease(selectedLeaseObject);
+      setSelectedLeases(prev => {
+        // Add to the selection if not already selected
+        if (!prev.includes(id)) {
+          return [...prev, id];
         }
-      }
+        return prev;
+      });
     } else {
       // Remove from selection
       setSelectedLeases(prev => prev.filter(leaseId => leaseId !== id));
-      
-      // If this was the selected lease, clear it
-      if (selectedLease && selectedLease.id === id) {
-        setSelectedLease(null);
-      }
     }
   };
 
-  // Handle lease selection from the grid (e.g., row click)
+  // Handle lease selection from the grid (ONLY opens details popup)
   const handleLeaseSelect = (lease: Lease) => {
-    console.log("Lease selected in grid:", lease);
-    
-    // Set as the only selected lease
-    setSelectedLeases([lease.id]);
+    console.log("Lease selected for details view:", lease);
     setSelectedLease(lease);
   };
 

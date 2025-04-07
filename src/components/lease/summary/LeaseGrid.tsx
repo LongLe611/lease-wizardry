@@ -51,25 +51,18 @@ export function LeaseGrid({
     return lease.created_at !== lease.updated_at;
   };
 
-  // Handle checkbox cell clicks - prevent event propagation to row
-  const handleCheckboxCellClick = (event: React.MouseEvent) => {
-    event.stopPropagation();  // Stop propagation to parent elements
-    event.preventDefault();   // Prevent default behavior
-  };
-
-  // Handle checkbox clicks - prevent propagation to row
-  const handleCheckboxClick = (event: React.MouseEvent) => {
-    event.stopPropagation();  // Stop propagation to parent elements
-    event.preventDefault();   // Prevent default behavior
-  };
-
-  // Handle checkbox change - this is called when the checkbox state changes
-  const handleCheckboxChange = (leaseId: string, checked: boolean) => {
+  // Handle checkbox change
+  const handleCheckboxChange = (leaseId: string, checked: boolean, event: React.MouseEvent) => {
+    // Don't let the event bubble up to the row
+    if (event) {
+      event.stopPropagation();
+    }
+    
     console.log(`Checkbox changed for lease ${leaseId}: ${checked}`);
     onSelectionChange(leaseId, checked);
   };
 
-  // Contract number click handler - shows lease details popup
+  // Contract number click handler - only opens the lease details popup
   const handleContractNumberClick = (lease: Lease, event: React.MouseEvent) => {
     console.log(`Contract number clicked for lease: ${lease.id}`);
     event.stopPropagation();
@@ -105,19 +98,17 @@ export function LeaseGrid({
               isModified(lease) ? "border-blue-500 border-2" : ""
             }`}
           >
-            <TableCell 
-              className="p-0 pl-4"
-              onClick={handleCheckboxCellClick} // Add click handler to the cell
-            >
-              <div onClick={handleCheckboxCellClick} className="w-full h-full">
-                <Checkbox
-                  checked={selectedLeases.includes(lease.id)}
-                  onCheckedChange={(checked) => 
-                    handleCheckboxChange(lease.id, checked === true)
-                  }
-                  onClick={handleCheckboxClick} // Add click handler to the checkbox
-                />
-              </div>
+            <TableCell className="p-0 pl-4" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={selectedLeases.includes(lease.id)}
+                onCheckedChange={(checked) => {
+                  handleCheckboxChange(lease.id, checked === true, null as any);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                className="cursor-pointer"
+              />
             </TableCell>
             <TableCell>{getStatusIndicator(lease)}</TableCell>
             <TableCell 
