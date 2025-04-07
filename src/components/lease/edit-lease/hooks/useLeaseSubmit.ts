@@ -1,11 +1,14 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Lease } from "../../summary/types";
 import { EditLeaseFormData } from "../types";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "../../schedule/utils/formatters";
+
+// Timeout duration in milliseconds (20 seconds)
+const UPDATE_TIMEOUT = 20000;
 
 // Function to fetch a single lease by ID as a fallback
 export const fetchLeaseById = async (leaseId: string) => {
@@ -35,6 +38,8 @@ export function useLeaseSubmit(
   onSuccess: () => void
 ) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -56,6 +61,46 @@ export function useLeaseSubmit(
     return null;
   };
 
+  // Setup a timeout for the lease update operation
+  const setupTimeout = () => {
+    // Clear any existing timeout
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
+    
+    // Set a new timeout
+    const id = window.setTimeout(() => {
+      // If we reach this point, the operation has timed out
+      console.error("Lease update operation timed out after", UPDATE_TIMEOUT, "ms");
+      
+      // Abort any ongoing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Reset submission state
+      setIsSubmitting(false);
+      
+      // Show timeout error to user
+      toast({
+        title: "Update Timed Out",
+        description: "The lease update is taking too long. Please try again.",
+        variant: "destructive",
+      });
+    }, UPDATE_TIMEOUT);
+    
+    setTimeoutId(id);
+    return id;
+  };
+
+  // Clear the timeout
+  const clearTimeout = () => {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+      setTimeoutId(null);
+    }
+  };
+
   const handleSubmit = async () => {
     console.log("Edit lease submit handler triggered");
     
@@ -70,6 +115,12 @@ export function useLeaseSubmit(
     }
     
     try {
+      // Create a new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
+      // Set up timeout
+      setupTimeout();
+      
       setIsSubmitting(true);
       console.log("Starting lease update for lease ID:", lease.id);
       console.log("Form data being submitted:", formData);
@@ -103,41 +154,49 @@ export function useLeaseSubmit(
       console.log("Target lease ID:", lease.id);
       console.log("Base payment amount being updated to:", formData.basePayment);
 
-      // Improved Supabase update query with better error handling
-      let updatedData;
-      const { data, error: updateError } = await supabase
-        .from('leases')
-        .update(leaseData)
-        .eq('id', lease.id)
-        .select('*');  // Explicitly select all columns
-
-      if (updateError) {
-        console.error('Supabase update error:', updateError);
-        throw updateError;
-      }
-
-      // Check if data was returned from the update operation
-      if (!data || data.length === 0) {
-        console.warn('Update succeeded but no data was returned from update operation');
-        
-        // Implement fallback fetch if the update doesn't return data
+      // Set a shorter timeout for the Supabase API call
+      const updatePromise = new Promise<any>(async (resolve, reject) => {
         try {
-          console.log('Attempting fallback fetch to get updated lease data');
-          updatedData = await fetchLeaseById(lease.id);
-          console.log('Fallback fetch successful:', updatedData);
-        } catch (fallbackError: any) {
-          console.error('Fallback fetch failed:', fallbackError);
-          throw new Error(`Update succeeded but failed to retrieve updated data: ${fallbackError.message}`);
-        }
-      } else {
-        updatedData = data[0];
-        console.log('Update returned data successfully:', updatedData);
-      }
+          // Improved Supabase update query with better error handling
+          const { data, error: updateError } = await supabase
+            .from('leases')
+            .update(leaseData)
+            .eq('id', lease.id)
+            .select('*')
+            .abortSignal(abortControllerRef.current?.signal);
 
-      // Ensure we have valid data to work with
-      if (!updatedData) {
-        throw new Error('Failed to retrieve updated lease data after successful update');
-      }
+          if (updateError) {
+            console.error('Supabase update error:', updateError);
+            reject(updateError);
+            return;
+          }
+
+          // Check if data was returned from the update operation
+          if (!data || data.length === 0) {
+            console.warn('Update succeeded but no data was returned from update operation');
+            
+            try {
+              console.log('Attempting fallback fetch to get updated lease data');
+              const updatedData = await fetchLeaseById(lease.id);
+              console.log('Fallback fetch successful:', updatedData);
+              resolve(updatedData);
+            } catch (fallbackError: any) {
+              console.error('Fallback fetch failed:', fallbackError);
+              reject(new Error(`Update succeeded but failed to retrieve updated data: ${fallbackError.message}`));
+            }
+          } else {
+            console.log('Update returned data successfully:', data[0]);
+            resolve(data[0]);
+          }
+        } catch (error: any) {
+          // This will catch network errors and other exceptions
+          console.error('Exception during update operation:', error);
+          reject(error);
+        }
+      });
+
+      // Wait for the update with a timeout
+      const updatedData = await updatePromise;
 
       console.log('Lease updated successfully. Response:', updatedData);
       console.log('Updated fields include:', {
@@ -149,20 +208,25 @@ export function useLeaseSubmit(
       // Force invalidate and refetch ALL lease-related queries with stronger cache reset
       console.log('Completely invalidating and forcing refetch of ALL lease-related query cache');
       
-      // First, reset the entire query cache
-      await queryClient.resetQueries();
-      
-      // Specifically invalidate leases queries 
-      await queryClient.invalidateQueries({ queryKey: ['leases'], refetchType: 'all' });
-      
-      // Force refetch of all leases data
-      const refetchResult = await queryClient.refetchQueries({ 
-        queryKey: ['leases'], 
-        type: 'all', 
-        exact: false 
-      });
-      
-      console.log('Query cache reset and refetch completed:', refetchResult);
+      try {
+        // First, reset the entire query cache
+        await queryClient.resetQueries();
+        
+        // Specifically invalidate leases queries 
+        await queryClient.invalidateQueries({ queryKey: ['leases'], refetchType: 'all' });
+        
+        // Force refetch of all leases data
+        const refetchResult = await queryClient.refetchQueries({ 
+          queryKey: ['leases'], 
+          type: 'all', 
+          exact: false 
+        });
+        
+        console.log('Query cache reset and refetch completed:', refetchResult);
+      } catch (cacheError: any) {
+        console.error('Error refreshing cache (non-fatal):', cacheError);
+        // We don't want to fail the operation if cache refresh fails
+      }
       
       // Show a more specific success message
       toast({
@@ -170,19 +234,35 @@ export function useLeaseSubmit(
         description: `Lease has been successfully updated with payment amount: ${formatCurrency(updatedData.base_payment)} ${updatedData.asset_type ? `and asset type: ${updatedData.asset_type}` : ''}`,
       });
       
+      // Clear the timeout since we completed successfully
+      clearTimeout();
+      
       // Call the onSuccess callback to update parent components
       onSuccess();
       return true;
     } catch (error: any) {
       console.error('Error updating lease:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update lease",
-        variant: "destructive",
-      });
+      
+      // If this was an AbortError, it was likely due to our own timeout
+      if (error.name === 'AbortError') {
+        toast({
+          title: "Update Cancelled",
+          description: "The lease update operation was cancelled. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update lease",
+          variant: "destructive",
+        });
+      }
       return false;
     } finally {
+      // Always clear the timeout and reset state
+      clearTimeout();
       setIsSubmitting(false);
+      abortControllerRef.current = null;
     }
   };
 
