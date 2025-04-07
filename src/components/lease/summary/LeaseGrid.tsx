@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -50,20 +51,18 @@ export function LeaseGrid({
     return lease.created_at !== lease.updated_at;
   };
 
-  // Explicitly separate checkbox click from row click to prevent conflicts
-  const handleCheckboxChange = (lease: Lease, checked: boolean) => {
+  // Checkbox click handler - only changes selection state
+  const handleCheckboxChange = (lease: Lease, checked: boolean, event: React.MouseEvent) => {
     console.log(`Checkbox changed for lease ${lease.id}: ${checked}`);
+    event.stopPropagation();
     onSelectionChange(lease.id, checked);
   };
 
-  // When a row is clicked, select the lease (separate from checkbox interaction)
-  const handleRowClick = (lease: Lease) => {
-    console.log(`Row clicked for lease: ${lease.id}`);
-    
-    // If the lease is already selected, don't trigger a new selection event
-    if (!selectedLeases.includes(lease.id)) {
-      onLeaseSelect(lease);
-    }
+  // Contract number click handler - shows lease details popup
+  const handleContractNumberClick = (lease: Lease, event: React.MouseEvent) => {
+    console.log(`Contract number clicked for lease: ${lease.id}`);
+    event.stopPropagation();
+    onLeaseSelect(lease);
   };
 
   if (isLoading) {
@@ -74,7 +73,7 @@ export function LeaseGrid({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-12"></TableHead>
+          <TableHead className="w-12">Select</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Contract Number</TableHead>
           <TableHead>Lessor Legal Entity</TableHead>
@@ -93,23 +92,30 @@ export function LeaseGrid({
               selectedLeases.includes(lease.id) ? "bg-muted/50" : ""
             } ${
               isModified(lease) ? "border-blue-500 border-2" : ""
-            } cursor-pointer`}
+            }`}
           >
-            <TableCell onClick={(e) => e.stopPropagation()}>
+            <TableCell className="p-0 pl-4">
               <Checkbox
                 checked={selectedLeases.includes(lease.id)}
-                onCheckedChange={(checked) => handleCheckboxChange(lease, checked === true)}
-                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={(checked) => 
+                  onSelectionChange(lease.id, checked === true)
+                }
+                onClick={(event) => event.stopPropagation()}
               />
             </TableCell>
-            <TableCell onClick={() => handleRowClick(lease)}>{getStatusIndicator(lease)}</TableCell>
-            <TableCell onClick={() => handleRowClick(lease)}>{lease.contract_number}</TableCell>
-            <TableCell onClick={() => handleRowClick(lease)}>{lease.lessor_entity}</TableCell>
-            <TableCell onClick={() => handleRowClick(lease)}>Property</TableCell>
-            <TableCell onClick={() => handleRowClick(lease)}>{format(new Date(lease.commencement_date), "PP")}</TableCell>
-            <TableCell onClick={() => handleRowClick(lease)}>{format(new Date(lease.expiration_date), "PP")}</TableCell>
-            <TableCell onClick={() => handleRowClick(lease)}>{getRemainingTerm(lease.expiration_date)} years</TableCell>
-            <TableCell onClick={() => handleRowClick(lease)} className="capitalize">{lease.payment_interval}</TableCell>
+            <TableCell>{getStatusIndicator(lease)}</TableCell>
+            <TableCell 
+              className="cursor-pointer hover:text-blue-600 hover:underline"
+              onClick={(event) => handleContractNumberClick(lease, event)}
+            >
+              {lease.contract_number}
+            </TableCell>
+            <TableCell>{lease.lessor_entity}</TableCell>
+            <TableCell>Property</TableCell>
+            <TableCell>{format(new Date(lease.commencement_date), "PP")}</TableCell>
+            <TableCell>{format(new Date(lease.expiration_date), "PP")}</TableCell>
+            <TableCell>{getRemainingTerm(lease.expiration_date)} years</TableCell>
+            <TableCell className="capitalize">{lease.payment_interval}</TableCell>
           </TableRow>
         ))}
       </TableBody>
